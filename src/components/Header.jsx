@@ -2,8 +2,8 @@
 import BrandName from "./BrandName.jsx";
 
 const navItems = [
-  { label: "Our Programs", href: "#programs" },
-  { label: "Registration", href: "#registration" },
+  { label: "Workshop", href: "#workshop-form" },
+  { label: "Programs", href: "#registration" },
   { label: "FAQs", href: "#faqs" },
 ];
 
@@ -12,10 +12,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-slate-800/95 backdrop-blur supports-[backdrop-filter]:bg-slate-800/80">
-      <nav
-        className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6"
-        aria-label="Main navigation"
-      >
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6" aria-label="Main navigation">
         <a href="#top" className="text-lg font-bold tracking-wide text-white">
           <BrandName textClassName="leading-none" />
         </a>
@@ -33,7 +30,7 @@ export default function Header() {
           </svg>
         </button>
 
-        <ul className="hidden items-center gap-6 md:flex">
+        <ul className="hidden items-center gap-5 md:flex">
           {navItems.map((item) => (
             <li key={item.href}>
               <a
@@ -44,6 +41,14 @@ export default function Header() {
               </a>
             </li>
           ))}
+          <li>
+            <a
+              href="#workshop-form"
+              className="animate-bounce rounded-xl bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-900 shadow-lg shadow-amber-300/40 ring-2 ring-amber-200 transition hover:bg-amber-300"
+            >
+              Reserve Seats
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -61,6 +66,15 @@ export default function Header() {
                 </a>
               </li>
             ))}
+            <li>
+              <a
+                href="#workshop-form"
+                className="mt-1 block animate-pulse rounded-xl bg-amber-400 px-3 py-2 text-sm font-extrabold text-slate-900"
+                onClick={() => setOpen(false)}
+              >
+                Reserve Seats
+              </a>
+            </li>
           </ul>
         </div>
       )}

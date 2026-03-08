@@ -15,25 +15,25 @@ export default function Hero() {
             <span className="inline-flex items-center">
               <BrandName textClassName="leading-none" logoClassName="h-[2.25em] w-[2.25em]" />
             </span>{" "}
-            - Power Yourself for Future
+            Power Yourself for Future
           </h1>
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-700 md:text-lg">
-            Future-Ready Skills for Students. Bootcamps for Learning AI & Coding - Designed for Real-World Success.
+            AI Study Skills Workshop for Students in Grades 6-12. Learn practical AI tools for smarter learning and exam prep.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
             <a
-              href="#registration"
-              className="animate-pulseSoft rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-800 focus-visible:ring-offset-2"
+              href="#workshop-form"
+              className="animate-pulseSoft rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 shadow-lg shadow-amber-700/20 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
             >
-              Book Free Demo
+              Reserve Seat for AI Workshop @ ₹99
             </a>
             <a
               href="#registration"
-              className="animate-pulseSoft rounded-2xl border-2 border-slate-800 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-800 focus-visible:ring-offset-2"
+              className="rounded-2xl border-2 border-slate-800 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-800 focus-visible:ring-offset-2"
             >
-              Enroll & Get Discount
+              Register in Programs
             </a>
           </div>
         </div>

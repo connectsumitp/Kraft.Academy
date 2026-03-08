@@ -13,9 +13,9 @@
       </ul>
       <a
         href="#registration"
-        className="mt-6 inline-flex rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-800 focus-visible:ring-offset-2"
+        className="mt-6 inline-flex rounded-xl bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
       >
-        Register Now
+        Register in Program
       </a>
     </article>
   );

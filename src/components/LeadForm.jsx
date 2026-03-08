@@ -61,7 +61,8 @@ export default function LeadForm() {
         whatsapp: form.whatsapp,
         program: form.program,
         timing: form.timing,
-        source: "Kraft Academy Website",
+        lead_type: "program",
+        source: "website_program_form",
         createdAt: new Date().toISOString(),
       };
 
@@ -76,7 +77,7 @@ export default function LeadForm() {
         body,
       });
 
-      setSubmitMessage("Thanks! Your spot request is submitted successfully.");
+      setSubmitMessage("Thanks! Your program enquiry is submitted successfully.");
       setForm({ name: "", grade: "", whatsapp: "", program: "", timing: "" });
       setTouched(false);
     } catch (error) {
@@ -90,9 +91,9 @@ export default function LeadForm() {
     <section id="registration" className="px-4 pb-16 pt-8 md:px-6" aria-labelledby="registration-title">
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <h2 id="registration-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-          Registration
+          Program Registration
         </h2>
-        <p className="mt-2 text-sm text-slate-700">Reserve your child&apos;s seat in a high-impact learning batch.</p>
+        <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp.</p>
 
         <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
           <div>
@@ -107,7 +108,7 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Student name"
               required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-slate-800 focus:ring-2 focus:ring-slate-800"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -122,7 +123,7 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Select grade"
               required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-slate-800 focus:ring-2 focus:ring-slate-800"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
             >
               <option value="">Select Grade</option>
               {[6, 7, 8, 9, 10, 11, 12].map((g) => (
@@ -146,7 +147,7 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="WhatsApp number"
               required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-slate-800 focus:ring-2 focus:ring-slate-800"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
             />
             {touched && !isWhatsappValid && (
               <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid 10-digit WhatsApp number.</p>
@@ -164,7 +165,7 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Select program"
               required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-slate-800 focus:ring-2 focus:ring-slate-800"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
             >
               <option value="">Select Program</option>
               {programs.map((program) => (
@@ -187,7 +188,7 @@ export default function LeadForm() {
               aria-label="Select timing"
               required
               disabled={!form.program}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-slate-800 focus:ring-2 focus:ring-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
             >
               <option value="">{form.program ? "Select Timing" : "Select Program First"}</option>
               {timingOptions.map((timing) => (
@@ -207,9 +208,9 @@ export default function LeadForm() {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 rounded-2xl bg-slate-800 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-800 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+            className="mt-2 rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {submitting ? "Submitting..." : "Secure My Spot"}
+            {submitting ? "Submitting..." : "Register in Program"}
           </button>
         </form>
       </div>
