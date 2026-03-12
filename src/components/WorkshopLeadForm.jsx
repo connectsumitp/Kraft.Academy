@@ -1,18 +1,52 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import { countryOptions, getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+
+const localeCountryMap = {
+  "en-US": "US",
+  "en-CA": "CA",
+  "en-GB": "GB",
+  "en-AE": "AE",
+  "en-SG": "SG",
+  "en-IN": "IN",
+  "en-AU": "AU",
+  "en-IE": "IE",
+  "en-NZ": "NZ",
+};
+
+function getDefaultCountry() {
+  if (typeof navigator === "undefined") return "US";
+  const locale = navigator.language || "en-US";
+  return localeCountryMap[locale] || locale.split("-")[1] || "US";
+}
 
 export default function WorkshopLeadForm() {
-  const [form, setForm] = useState({ name: "", whatsapp: "", grade: "" });
+  const [form, setForm] = useState({
+    name: "",
+    contact: "",
+    email: "",
+    age: "",
+    country: "",
+    timing: "",
+  });
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
-  const isWhatsappValid = useMemo(() => /^\d{10}$/.test(form.whatsapp), [form.whatsapp]);
+  const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
+  const timingOptions = useMemo(() => getTimingOptions(form.country), [form.country]);
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
+  const defaultCountry = useMemo(getDefaultCountry, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
-    if (name === "whatsapp") {
-      setForm((prev) => ({ ...prev, whatsapp: value.replace(/\D/g, "").slice(0, 10) }));
+    if (name === "country") {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("ka_country", value);
+        window.dispatchEvent(new Event("ka-country-change"));
+      }
+      setForm((prev) => ({ ...prev, country: value, timing: "" }));
       return;
     }
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -23,7 +57,7 @@ export default function WorkshopLeadForm() {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.grade || !isWhatsappValid) {
+    if (!form.name || !form.age || !form.country || !form.timing || !form.email || !isContactValid) {
       return;
     }
 
@@ -37,10 +71,12 @@ export default function WorkshopLeadForm() {
       setSubmitting(true);
       const payload = {
         name: form.name,
-        whatsapp: form.whatsapp,
-        grade: form.grade,
+        contact: form.contact,
+        email: form.email,
+        age: form.age,
+        country: form.country,
+        timing: form.timing,
         program: "",
-        timing: "",
         lead_type: "workshop",
         source: "website_workshop_top_form",
         createdAt: new Date().toISOString(),
@@ -59,7 +95,7 @@ export default function WorkshopLeadForm() {
         window.fbq("track", "Lead", { lead_type: "workshop", source: "website_workshop_top_form" });
       }
 
-      setForm({ name: "", whatsapp: "", grade: "" });
+      setForm({ name: "", contact: "", email: "", age: "", country: "", timing: "" });
       setTouched(false);
       setShowSuccess(true);
     } catch (error) {
@@ -74,11 +110,11 @@ export default function WorkshopLeadForm() {
       <section id="workshop-form" className="px-4 pb-10 pt-8 md:px-6" aria-labelledby="workshop-title">
         <div className="mx-auto max-w-6xl rounded-2xl border border-amber-200 bg-white p-6 shadow-sm md:p-8">
           <h2 id="workshop-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-            Reserve Seat for AI Workshop @ ₹99
+            Reserve seats for your child
           </h2>
-          <p className="mt-2 text-sm text-slate-700">AI Study Skills Workshop for Students (Grades 6th to 12th).</p>
+          <p className="mt-2 text-sm text-slate-700">AI Study Skills Workshop for Students (Ages 11 to 18).</p>
           <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
-            Includes AI Study Toolkit (Worth Rs 499)
+            Includes AI Study Toolkit
           </p>
 
           <form className="mt-6 grid gap-4 md:grid-cols-3" onSubmit={onSubmit} noValidate>
@@ -92,52 +128,115 @@ export default function WorkshopLeadForm() {
                 type="text"
                 value={form.name}
                 onChange={onChange}
-                aria-label="Workshop student name"
+                aria-label="Student name"
                 required
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
               />
             </div>
 
             <div>
-              <label htmlFor="workshop-whatsapp" className="mb-1 block text-sm font-medium text-slate-800">
-                WhatsApp Number
+              <label htmlFor="workshop-contact" className="mb-1 block text-sm font-medium text-slate-800">
+                Contact
               </label>
-              <input
-                id="workshop-whatsapp"
-                name="whatsapp"
-                type="tel"
-                inputMode="numeric"
-                value={form.whatsapp}
-                onChange={onChange}
-                aria-label="Workshop WhatsApp number"
-                required
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              <PhoneInput
+                id="workshop-contact"
+                international
+                defaultCountry={defaultCountry}
+                countryCallingCodeEditable={false}
+                countrySelectProps={{ "aria-label": "Country" }}
+                placeholder="Enter contact number"
+                value={form.contact}
+                onChange={(value) => setForm((prev) => ({ ...prev, contact: value || "" }))}
+                className="phone-input"
+                aria-label="Contact number"
               />
-              {touched && !isWhatsappValid && (
-                <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid 10-digit WhatsApp number.</p>
+              {touched && !isContactValid && (
+                <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid contact number.</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="workshop-grade" className="mb-1 block text-sm font-medium text-slate-800">
-                Grade
+              <label htmlFor="workshop-email" className="mb-1 block text-sm font-medium text-slate-800">
+                Email
+              </label>
+              <input
+                id="workshop-email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={onChange}
+                aria-label="Email"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="workshop-age" className="mb-1 block text-sm font-medium text-slate-800">
+                Age
               </label>
               <select
-                id="workshop-grade"
-                name="grade"
-                value={form.grade}
+                id="workshop-age"
+                name="age"
+                value={form.age}
                 onChange={onChange}
-                aria-label="Workshop grade"
+                aria-label="Age"
                 required
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
               >
-                <option value="">Select Grade</option>
-                {[6, 7, 8, 9, 10, 11, 12].map((g) => (
-                  <option key={g} value={`Grade ${g}`}>
-                    Grade {g}
+                <option value="">Select Age</option>
+                {[11, 12, 13, 14, 15, 16, 17, 18].map((age) => (
+                  <option key={age} value={`${age}`}>
+                    {age} years
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="workshop-country" className="mb-1 block text-sm font-medium text-slate-800">
+                Country
+              </label>
+              <select
+                id="workshop-country"
+                name="country"
+                value={form.country}
+                onChange={onChange}
+                aria-label="Country"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">Select Country</option>
+                {countryOptions.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="workshop-timing" className="mb-1 block text-sm font-medium text-slate-800">
+                Timing
+              </label>
+              <select
+                id="workshop-timing"
+                name="timing"
+                value={form.timing}
+                onChange={onChange}
+                aria-label="Timing"
+                required
+                disabled={!form.country}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="">{form.country ? "Select Timing" : "Select Country First"}</option>
+                {timingOptions.map((timing) => (
+                  <option key={timing} value={timing}>
+                    {timing}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
             </div>
 
             <div className="md:col-span-3">
@@ -146,9 +245,8 @@ export default function WorkshopLeadForm() {
                 disabled={submitting}
                 className="rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {submitting ? "Submitting..." : "Reserve Seat for AI Workshop @ ₹99"}
+                {submitting ? "Submitting..." : "Reserve seats for your child"}
               </button>
-              <p className="mt-2 text-xs text-slate-600">Full refund if not satisified with the workshop.*</p>
               {submitMessage && (
                 <p className="mt-2 text-sm font-medium text-slate-700" role="status" aria-live="polite">
                   {submitMessage}
@@ -164,9 +262,9 @@ export default function WorkshopLeadForm() {
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-xl font-bold text-slate-900">Seat Reserved</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-700">
-              Your seat has been reserved. We&apos;ll WhatsApp you with the Workshop Date/Timing Link & Payment Link soon.
+              Your seat has been reserved. We&apos;ll contact you with the Workshop Date/Timing Link & Payment Link soon.
             </p>
-            <p className="mt-2 text-sm text-slate-700">For enquiries, hit the WhatsApp icon.</p>
+            <p className="mt-2 text-sm text-slate-700">For enquiries, hit the WhatsApp or Email icon.</p>
             <div className="mt-5 flex gap-3">
               <button
                 type="button"

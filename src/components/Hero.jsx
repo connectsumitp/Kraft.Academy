@@ -19,7 +19,7 @@ export default function Hero() {
           </h1>
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-700 md:text-lg">
-            AI Study Skills Workshop for Students in Grades 6-12. Learn practical AI tools for smarter learning and exam prep.
+            AI Study Skills Workshop for Students in Ages 11-18. Learn practical AI tools for smarter learning and exam prep.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
@@ -27,7 +27,7 @@ export default function Hero() {
               href="#workshop-form"
               className="animate-pulseSoft rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 shadow-lg shadow-amber-700/20 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
             >
-              Reserve Seat for AI Workshop @ ₹99
+              Reserve seats for your child
             </a>
             <a
               href="#registration"

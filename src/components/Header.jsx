@@ -4,6 +4,7 @@ import BrandName from "./BrandName.jsx";
 const navItems = [
   { label: "Workshop", href: "#workshop-form" },
   { label: "Programs", href: "#registration" },
+  { label: "Pricing", href: "#pricing" },
   { label: "FAQs", href: "#faqs" },
 ];
 
@@ -46,7 +47,7 @@ export default function Header() {
               href="#workshop-form"
               className="animate-bounce rounded-xl bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-900 shadow-lg shadow-amber-300/40 ring-2 ring-amber-200 transition hover:bg-amber-300"
             >
-              Reserve Seats
+              Reserve seats for your child
             </a>
           </li>
         </ul>
@@ -72,7 +73,7 @@ export default function Header() {
                 className="mt-1 block animate-pulse rounded-xl bg-amber-400 px-3 py-2 text-sm font-extrabold text-slate-900"
                 onClick={() => setOpen(false)}
               >
-                Reserve Seats
+                Reserve seats for your child
               </a>
             </li>
           </ul>

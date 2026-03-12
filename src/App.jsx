@@ -6,16 +6,17 @@ import LeadForm from "./components/LeadForm.jsx";
 import WorkshopLeadForm from "./components/WorkshopLeadForm.jsx";
 import CountdownBar from "./components/CountdownBar.jsx";
 import BrandName from "./components/BrandName.jsx";
+import PricingSection from "./components/PricingSection.jsx";
 
 const programData = [
   {
     title: "AI Future Skills",
-    details: "Grades 6-10 | 4 Weeks | ₹5000",
+    details: "Ages 11-18 | 4 Weeks",
     features: ["AI Fundamentals", "Productivity Tools", "AI for Exams", "Live Projects"],
   },
   {
     title: "Coding Bootcamp",
-    details: "Grades 9-12 | 2 Months | ₹3500/month",
+    details: "Ages 11-18 | 2 Months",
     features: ["Coding Fundamentals", "Logical Thinking", "Mini Projects", "Competitive Mindset"],
   },
 ];
@@ -30,7 +31,7 @@ const trustItems = [
 const faqs = [
   {
     q: "Who can join this workshop?",
-    a: "Students from 6th to 12th Grades can join.",
+    a: "Students ages 11 to 18 can join.",
   },
   {
     q: "Any prerequisites needed?",
@@ -96,7 +97,7 @@ export default function App() {
               Our Programs
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-700 md:text-base">
-              Designed for Grades 6-12 with outcome-focused sessions and real-world application.
+              Designed for Ages 11-18 with outcome-focused sessions and real-world application.
             </p>
 
             <div className="mt-6 grid gap-6 md:grid-cols-2">
@@ -123,6 +124,8 @@ export default function App() {
         </section>
 
         <LeadForm />
+
+        <PricingSection />
 
         <section id="faqs" className="px-4 pb-16 pt-2 md:px-6" aria-labelledby="faq-title">
           <div className="mx-auto max-w-5xl">
@@ -182,7 +185,16 @@ export default function App() {
           className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-green-700/30 transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-current">
-            <path d="M20.52 3.48A11.86 11.86 0 0 0 12.07 0C5.5 0 .17 5.34.17 11.9c0 2.1.55 4.16 1.6 5.98L0 24l6.31-1.66a11.87 11.87 0 0 0 5.76 1.47h.01c6.56 0 11.9-5.34 11.9-11.9 0-3.18-1.24-6.17-3.46-8.43Zm-8.45 18.3h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.75.99 1-3.65-.23-.37a9.9 9.9 0 0 1-1.52-5.27c0-5.46 4.45-9.91 9.92-9.91a9.87 9.87 0 0 1 7.02 2.91 9.86 9.86 0 0 1 2.9 7.01c0 5.47-4.44 9.92-9.91 9.92Zm5.44-7.4c-.3-.15-1.78-.88-2.05-.99-.28-.1-.48-.15-.68.15-.2.3-.78.99-.95 1.2-.18.2-.35.23-.65.08-.3-.15-1.25-.46-2.38-1.47a8.9 8.9 0 0 1-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.53.15-.18.2-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.68-1.64-.93-2.24-.25-.6-.5-.52-.68-.53h-.58c-.2 0-.53.08-.8.38-.28.3-1.05 1.03-1.05 2.5 0 1.48 1.08 2.9 1.23 3.1.15.2 2.12 3.24 5.14 4.54.72.31 1.28.5 1.72.65.72.23 1.37.2 1.88.12.57-.08 1.78-.73 2.03-1.43.25-.7.25-1.3.17-1.43-.07-.12-.27-.2-.57-.35Z" />
+            <path d="M20.52 3.48A11.86 11.86 0 0 0 12.07 0C5.5 0 .17 5.34.17 11.9c0 2.1.55 4.16 1.6 5.98L0 24l6.31-1.66a11.87 11.87 0 0 0 5.76 1.47h.01c6.56 0 11.9-5.34 11.9-11.9 0-3.18-1.24-6.17-3.46-8.43Zm-8.45 18.3h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.75.99 1-3.65-.23-.37a9.9 9.9 0 0 1-1.52-5.27c0-5.46 4.45-9.91 9.92-9.91a9.87 9.87 0 0 1 7.02 2.91 9.86 9.86 0 0 1 2.9 7.01c0 5.47-4.44 9.92-9.91 9.92Zm5.44-7.4c-.3-.15-1.78-.88-2.05-.99-.28-.1-.48-.15-.68.15-.2.3-.78.99-.95 1.2-.18.2-.35.23-.65.08-.3-.15-1.25-.46-2.38-1.47a8.9 8.9 0 0 1-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.53.15-.18.20-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.68-1.64-.93-2.24-.25-.6-.5-.52-.68-.53h-.58c-.2 0-.53.08-.8.38-.28.3-1.05 1.03-1.05 2.5 0 1.48 1.08 2.9 1.23 3.1.15.2 2.12 3.24 5.14 4.54.72.31 1.28.5 1.72.65.72.23 1.37.2 1.88.12.57-.08 1.78-.73 2.03-1.43.25-.7.25-1.3.17-1.43-.07-.12-.27-.2-.57-.35Z" />
+          </svg>
+        </a>
+        <a
+          href="mailto:connect.sumitp@gmail.com"
+          aria-label="Email Kraft Academy"
+          className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#EA4335] text-white shadow-xl shadow-red-700/30 transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-current">
+            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 4.2-8 5-8-5V6l8 5 8-5v2.2Z" />
           </svg>
         </a>
       </div>

@@ -28,7 +28,7 @@ export default function CountdownBar() {
           href="#workshop-form"
           className="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-amber-300 md:absolute md:left-1/2 md:-translate-x-1/2 md:text-sm"
         >
-          Reserve Seats
+          Reserve seats for your child
         </a>
       </div>
     </div>

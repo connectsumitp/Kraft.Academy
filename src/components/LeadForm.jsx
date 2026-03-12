@@ -1,17 +1,34 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import { countryOptions, getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+
+const localeCountryMap = {
+  "en-US": "US",
+  "en-CA": "CA",
+  "en-GB": "GB",
+  "en-AE": "AE",
+  "en-SG": "SG",
+  "en-IN": "IN",
+  "en-AU": "AU",
+  "en-IE": "IE",
+  "en-NZ": "NZ",
+};
+
+function getDefaultCountry() {
+  if (typeof navigator === "undefined") return "US";
+  const locale = navigator.language || "en-US";
+  return localeCountryMap[locale] || locale.split("-")[1] || "US";
+}
 
 const programs = ["AI Future Skills", "Coding Bootcamp"];
-
-const timingOptionsByProgram = {
-  "AI Future Skills": ["6 PM- 7 PM", "7 PM- 8 PM", "8 PM- 9 PM"],
-  "Coding Bootcamp": ["9 AM- 10 AM", "10 AM-11 AM", "7 PM- 8 PM", "6 PM-7 PM"],
-};
 
 export default function LeadForm() {
   const [form, setForm] = useState({
     name: "",
-    grade: "",
-    whatsapp: "",
+    contact: "",
+    email: "",
+    age: "",
+    country: "",
     program: "",
     timing: "",
   });
@@ -19,19 +36,20 @@ export default function LeadForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
-  const isWhatsappValid = useMemo(() => /^\d{10}$/.test(form.whatsapp), [form.whatsapp]);
-  const timingOptions = useMemo(() => timingOptionsByProgram[form.program] || [], [form.program]);
+  const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
+  const timingOptions = useMemo(() => getTimingOptions(form.country), [form.country]);
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
+  const defaultCountry = useMemo(getDefaultCountry, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === "whatsapp") {
-      setForm((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
-      return;
-    }
-
-    if (name === "program") {
-      setForm((prev) => ({ ...prev, program: value, timing: "" }));
+    if (name === "country") {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("ka_country", value);
+        window.dispatchEvent(new Event("ka-country-change"));
+      }
+      setForm((prev) => ({ ...prev, country: value, timing: "" }));
       return;
     }
 
@@ -43,7 +61,7 @@ export default function LeadForm() {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.grade || !form.program || !form.timing || !isWhatsappValid) {
+    if (!form.name || !form.age || !form.country || !form.program || !form.timing || !form.email || !isContactValid) {
       return;
     }
 
@@ -57,8 +75,10 @@ export default function LeadForm() {
       setSubmitting(true);
       const payload = {
         name: form.name,
-        grade: form.grade,
-        whatsapp: form.whatsapp,
+        contact: form.contact,
+        email: form.email,
+        age: form.age,
+        country: form.country,
         program: form.program,
         timing: form.timing,
         lead_type: "program",
@@ -78,7 +98,7 @@ export default function LeadForm() {
       });
 
       setSubmitMessage("Thanks! Your program enquiry is submitted successfully.");
-      setForm({ name: "", grade: "", whatsapp: "", program: "", timing: "" });
+      setForm({ name: "", contact: "", email: "", age: "", country: "", program: "", timing: "" });
       setTouched(false);
     } catch (error) {
       setSubmitMessage("Submission failed. Check Apps Script deployment access and sheet name, then try again.");
@@ -93,7 +113,7 @@ export default function LeadForm() {
         <h2 id="registration-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
           Program Registration
         </h2>
-        <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp.</p>
+        <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp or Email.</p>
 
         <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
           <div>
@@ -113,45 +133,84 @@ export default function LeadForm() {
           </div>
 
           <div>
-            <label htmlFor="grade" className="mb-1 block text-sm font-medium text-slate-800">
-              Grade
+            <label htmlFor="contact" className="mb-1 block text-sm font-medium text-slate-800">
+              Contact
+            </label>
+            <PhoneInput
+              id="contact"
+              international
+              defaultCountry={defaultCountry}
+              countryCallingCodeEditable={false}
+              countrySelectProps={{ "aria-label": "Country" }}
+              placeholder="Enter contact number"
+              value={form.contact}
+              onChange={(value) => setForm((prev) => ({ ...prev, contact: value || "" }))}
+              className="phone-input"
+              aria-label="Contact number"
+            />
+            {touched && !isContactValid && (
+              <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid contact number.</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-800">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={onChange}
+              aria-label="Email"
+              required
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="age" className="mb-1 block text-sm font-medium text-slate-800">
+              Age
             </label>
             <select
-              id="grade"
-              name="grade"
-              value={form.grade}
+              id="age"
+              name="age"
+              value={form.age}
               onChange={onChange}
-              aria-label="Select grade"
+              aria-label="Age"
               required
               className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
             >
-              <option value="">Select Grade</option>
-              {[6, 7, 8, 9, 10, 11, 12].map((g) => (
-                <option key={g} value={`Grade ${g}`}>
-                  Grade {g}
+              <option value="">Select Age</option>
+              {[11, 12, 13, 14, 15, 16, 17, 18].map((age) => (
+                <option key={age} value={`${age}`}>
+                  {age} years
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label htmlFor="whatsapp" className="mb-1 block text-sm font-medium text-slate-800">
-              WhatsApp Number
+            <label htmlFor="country" className="mb-1 block text-sm font-medium text-slate-800">
+              Country
             </label>
-            <input
-              id="whatsapp"
-              name="whatsapp"
-              inputMode="numeric"
-              type="tel"
-              value={form.whatsapp}
+            <select
+              id="country"
+              name="country"
+              value={form.country}
               onChange={onChange}
-              aria-label="WhatsApp number"
+              aria-label="Country"
               required
               className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-            />
-            {touched && !isWhatsappValid && (
-              <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid 10-digit WhatsApp number.</p>
-            )}
+            >
+              <option value="">Select Country</option>
+              {countryOptions.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -187,16 +246,17 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Select timing"
               required
-              disabled={!form.program}
+              disabled={!form.country}
               className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
             >
-              <option value="">{form.program ? "Select Timing" : "Select Program First"}</option>
+              <option value="">{form.country ? "Select Timing" : "Select Country First"}</option>
               {timingOptions.map((timing) => (
                 <option key={timing} value={timing}>
                   {timing}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
           </div>
 
           {submitMessage && (
