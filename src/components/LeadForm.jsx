@@ -95,7 +95,8 @@ export default function LeadForm() {
         timing: form.timing,
         lead_type: "program",
         source: "website_program_form",
-        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        payment_status: "",
       };
 
       const body = new URLSearchParams(payload).toString();

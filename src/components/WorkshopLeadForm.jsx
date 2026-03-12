@@ -85,7 +85,8 @@ export default function WorkshopLeadForm() {
         program: "",
         lead_type: "workshop",
         source: "website_workshop_top_form",
-        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        payment_status: "",
       };
 
       await fetch(scriptUrl, {
