@@ -75,12 +75,61 @@ function applyPsychologicalRounding(value) {
   return Math.max(9, rounded);
 }
 
+function getSubunitFactor(currency) {
+  const zeroDecimal = new Set(["JPY", "KRW", "VND"]);
+  return zeroDecimal.has(currency) ? 1 : 100;
+}
+
+function loadRazorpayScript() {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (window.Razorpay) return Promise.resolve(true);
+  const existing = document.querySelector("script[data-razorpay]");
+  if (existing) {
+    return new Promise((resolve) => {
+      existing.addEventListener("load", () => resolve(true));
+      existing.addEventListener("error", () => resolve(false));
+    });
+  }
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.dataset.razorpay = "true";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+function getPrefill() {
+  if (typeof window === "undefined") return {};
+  return {
+    name: window.localStorage.getItem("ka_name") || "",
+    email: window.localStorage.getItem("ka_email") || "",
+    contact: window.localStorage.getItem("ka_contact") || "",
+  };
+}
+
+function getLeadDetails() {
+  if (typeof window === "undefined") return {};
+  return {
+    name: window.localStorage.getItem("ka_name") || "",
+    email: window.localStorage.getItem("ka_email") || "",
+    contact: window.localStorage.getItem("ka_contact") || "",
+    age: window.localStorage.getItem("ka_age") || "",
+    country: window.localStorage.getItem("ka_country") || "",
+    timing: window.localStorage.getItem("ka_timing") || "",
+    program: window.localStorage.getItem("ka_program") || "",
+  };
+}
+
 export default function PricingSection() {
   const [country, setCountry] = useState("");
   const [paymentRegion, setPaymentRegion] = useState("GLOBAL");
   const [currency, setCurrency] = useState("USD");
   const [rates, setRates] = useState(fallbackRates);
   const [rateSource, setRateSource] = useState("fallback");
+  const [checkoutStatus, setCheckoutStatus] = useState("");
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("ka_country") : "";
@@ -129,6 +178,7 @@ export default function PricingSection() {
       return {
         label: formatMoney(INDIA_AMOUNT_INR, "INR"),
         amount: INDIA_AMOUNT_INR,
+        currency: "INR",
       };
     }
 
@@ -139,14 +189,138 @@ export default function PricingSection() {
     return {
       label: formatMoney(rounded, currency),
       amount: rounded,
+      currency,
       raw: converted,
     };
   }, [paymentRegion, currency, rates]);
 
-  const razorpayIndiaUrl = import.meta.env.VITE_RAZORPAY_URL_IN || "";
-  const razorpayGlobalUrl = import.meta.env.VITE_RAZORPAY_URL_GLOBAL || "";
-  const razorpayProgramUrl = import.meta.env.VITE_RAZORPAY_URL_PROGRAM || "";
-  const paymentUrl = paymentRegion === "IN" ? razorpayIndiaUrl : razorpayGlobalUrl;
+  const programInr = Number(import.meta.env.VITE_PROGRAM_AMOUNT_INR || 0);
+  const programGlobalInr = Number(import.meta.env.VITE_PROGRAM_GLOBAL_INR || 0);
+
+  const programPricing = useMemo(() => {
+    const baseInr = paymentRegion === "IN" ? programInr : programGlobalInr;
+    if (!baseInr) {
+      return { label: "Set program price", amount: 0, currency: paymentRegion === "IN" ? "INR" : currency };
+    }
+    if (paymentRegion === "IN") {
+      return {
+        label: formatMoney(baseInr, "INR"),
+        amount: baseInr,
+        currency: "INR",
+      };
+    }
+    const fx = rates[currency] || fallbackRates[currency] || 1;
+    const converted = baseInr * fx;
+    const rounded = applyPsychologicalRounding(converted);
+    return {
+      label: formatMoney(rounded, currency),
+      amount: rounded,
+      currency,
+      raw: converted,
+    };
+  }, [programInr, programGlobalInr, paymentRegion, currency, rates]);
+
+  const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "";
+
+  const handleCheckout = async (purpose) => {
+    setCheckoutStatus("");
+    if (!orderScriptUrl) {
+      setCheckoutStatus("Missing order script URL. Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env.");
+      return;
+    }
+
+    const isProgram = purpose === "program";
+    const selected = isProgram ? programPricing : pricingInfo;
+
+    if (!selected.amount) {
+      setCheckoutStatus("Program price is not set. Add VITE_PROGRAM_AMOUNT_INR and VITE_PROGRAM_GLOBAL_INR in .env.");
+      return;
+    }
+
+    const ok = await loadRazorpayScript();
+    if (!ok) {
+      setCheckoutStatus("Razorpay SDK failed to load. Check your connection and try again.");
+      return;
+    }
+
+    const factor = getSubunitFactor(selected.currency);
+    const amountSubunits = Math.round(selected.amount * factor);
+
+    try {
+      const payload = {
+        action: "create_order",
+        amount: amountSubunits,
+        currency: selected.currency,
+        purpose,
+        receipt: `ka_${purpose}_${Date.now()}`,
+        notes: {
+          country: country || "",
+          payment_region: paymentRegion,
+        },
+      };
+
+      const response = await fetch(orderScriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Order request failed");
+      }
+
+      const data = await response.json();
+      if (!data?.ok) {
+        throw new Error(data?.error || "Order creation failed");
+      }
+
+      const prefill = getPrefill();
+
+      const rzp = new window.Razorpay({
+        key: data.key,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Kraft Academy",
+        description: purpose === "program" ? "Program Enrollment" : "AI Study Skills Workshop",
+        order_id: data.order_id,
+        prefill,
+        handler: async function () {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("ka_last_payment", purpose);
+            window.location.hash = "#thank-you";
+          }
+          try {
+            const lead = getLeadDetails();
+            await fetch(orderScriptUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "send_confirmation",
+                purpose,
+                name: lead.name,
+                email: lead.email,
+                contact: lead.contact,
+                age: lead.age,
+                country: lead.country,
+                timing: lead.timing,
+                program: lead.program,
+              }),
+            });
+          } catch (_) {
+            // ignore email failures for now
+          }
+          setCheckoutStatus("Payment successful. We will contact you shortly.");
+        },
+        notes: payload.notes,
+        theme: { color: "#1E293B" },
+      });
+
+      rzp.open();
+    } catch (err) {
+      setCheckoutStatus(err?.message || "Payment could not be started.");
+    }
+  };
 
   return (
     <section id="pricing" className="px-4 pb-12 pt-6 md:px-6" aria-labelledby="pricing-title">
@@ -191,7 +365,7 @@ export default function PricingSection() {
         <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Razorpay Payment</h3>
+              <h3 className="text-lg font-bold text-slate-900">Razorpay Checkout</h3>
               <p className="mt-1 text-sm text-slate-700">Pay securely via UPI, Debit Card, or Credit Card.</p>
               <div className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                 {rateSource === "live" ? "Live FX rates" : "Estimated FX rates"}
@@ -233,14 +407,10 @@ export default function PricingSection() {
               {paymentRegion === "GLOBAL" && (
                 <p className="mt-1 text-xs text-slate-500">Converted from {GLOBAL_AMOUNT_INR} INR with psychological rounding.</p>
               )}
-              <a
-                href={paymentUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-disabled={!paymentUrl}
-                className={`mt-3 inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold ${
-                  paymentUrl ? "bg-slate-900 text-white hover:bg-slate-800" : "cursor-not-allowed bg-slate-200 text-slate-500"
-                }`}
+              <button
+                type="button"
+                onClick={() => handleCheckout("workshop")}
+                className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
@@ -248,27 +418,16 @@ export default function PricingSection() {
                   </svg>
                 </span>
                 Pay Workshop via Razorpay
-              </a>
-              {!paymentUrl && (
-                <p className="mt-2 text-xs text-rose-600">
-                  Add VITE_RAZORPAY_URL_IN and VITE_RAZORPAY_URL_GLOBAL in .env.
-                </p>
-              )}
+              </button>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm font-semibold text-slate-800">Program Payment</p>
-              <p className="mt-1 text-sm text-slate-700">Pay for full program enrollment.</p>
-              <a
-                href={razorpayProgramUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-disabled={!razorpayProgramUrl}
-                className={`mt-3 inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold ${
-                  razorpayProgramUrl
-                    ? "bg-slate-900 text-white hover:bg-slate-800"
-                    : "cursor-not-allowed bg-slate-200 text-slate-500"
-                }`}
+              <p className="mt-1 text-sm text-slate-700">Pay {programPricing.label}</p>
+              <button
+                type="button"
+                onClick={() => handleCheckout("program")}
+                className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
@@ -276,12 +435,23 @@ export default function PricingSection() {
                   </svg>
                 </span>
                 Pay Program via Razorpay
-              </a>
-              {!razorpayProgramUrl && (
-                <p className="mt-2 text-xs text-rose-600">Add VITE_RAZORPAY_URL_PROGRAM in .env.</p>
-              )}
+              </button>
             </div>
           </div>
+
+          {checkoutStatus && (
+            <p className="mt-4 text-sm font-medium text-slate-700" role="status" aria-live="polite">
+              {checkoutStatus}
+            </p>
+          )}
+          {!orderScriptUrl && (
+            <p className="mt-2 text-xs text-rose-600">
+              Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env to enable checkout.
+            </p>
+          )}
+          {(!programInr || !programGlobalInr) && (
+            <p className="mt-2 text-xs text-rose-600">Add VITE_PROGRAM_AMOUNT_INR and VITE_PROGRAM_GLOBAL_INR in .env for program checkout.</p>
+          )}
         </div>
       </div>
     </section>

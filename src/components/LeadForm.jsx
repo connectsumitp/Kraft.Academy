@@ -53,6 +53,18 @@ export default function LeadForm() {
       return;
     }
 
+    if (name === "timing" && typeof window !== "undefined") {
+      window.localStorage.setItem("ka_timing", value);
+    }
+
+    if (name === "program" && typeof window !== "undefined") {
+      window.localStorage.setItem("ka_program", value);
+    }
+
+    if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
+      window.localStorage.setItem(`ka_${name}`, value);
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -144,7 +156,13 @@ export default function LeadForm() {
               countrySelectProps={{ "aria-label": "Country" }}
               placeholder="Enter contact number"
               value={form.contact}
-              onChange={(value) => setForm((prev) => ({ ...prev, contact: value || "" }))}
+              onChange={(value) => {
+                const next = value || "";
+                setForm((prev) => ({ ...prev, contact: next }));
+                if (typeof window !== "undefined") {
+                  window.localStorage.setItem("ka_contact", next);
+                }
+              }}
               className="phone-input"
               aria-label="Contact number"
             />

@@ -7,6 +7,7 @@ import WorkshopLeadForm from "./components/WorkshopLeadForm.jsx";
 import CountdownBar from "./components/CountdownBar.jsx";
 import BrandName from "./components/BrandName.jsx";
 import PricingSection from "./components/PricingSection.jsx";
+import ThankYouSection from "./components/ThankYouSection.jsx";
 
 const programData = [
   {
@@ -126,6 +127,8 @@ export default function App() {
         <LeadForm />
 
         <PricingSection />
+
+        <ThankYouSection />
 
         <section id="faqs" className="px-4 pb-16 pt-2 md:px-6" aria-labelledby="faq-title">
           <div className="mx-auto max-w-5xl">
