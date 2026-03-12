@@ -61,22 +61,76 @@ const timeZoneLabels = {
   UTC: "UTC",
 };
 
-function formatHour(hour) {
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const hour12 = ((hour + 11) % 12) + 1;
-  return `${hour12}:00 ${suffix}`;
-}
+const IST_ZONE = "Asia/Kolkata";
+const IST_OFFSET_MINUTES = 330; // +05:30
 
 function getZoneLabel(timeZone) {
   return timeZoneLabels[timeZone] || timeZone;
 }
 
+function getIstDateParts() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: IST_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return {
+    year: Number(lookup.year),
+    month: Number(lookup.month),
+    day: Number(lookup.day),
+    iso: `${lookup.year}-${lookup.month}-${lookup.day}`,
+  };
+}
+
+function buildIstDateUtc(year, month, day, hour, minute) {
+  // Convert IST wall time to UTC by subtracting +05:30
+  const totalMinutes = hour * 60 + minute - IST_OFFSET_MINUTES;
+  const utcHour = Math.floor(totalMinutes / 60);
+  const utcMinute = totalMinutes % 60;
+  return new Date(Date.UTC(year, month - 1, day, utcHour, utcMinute, 0));
+}
+
+function formatTimeInZone(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return formatter.format(date).replace(":00", ":00");
+}
+
+function formatDateKey(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(date);
+}
+
 function buildSlotsForZone(timeZone) {
   const label = getZoneLabel(timeZone);
   const slots = [];
+  const istDate = getIstDateParts();
+
   for (let hour = 9; hour < 22; hour += 1) {
-    slots.push(`${formatHour(hour)} - ${formatHour(hour + 1)} (${label})`);
+    const startUtc = buildIstDateUtc(istDate.year, istDate.month, istDate.day, hour, 0);
+    const endUtc = buildIstDateUtc(istDate.year, istDate.month, istDate.day, hour + 1, 0);
+
+    const startLocal = formatTimeInZone(startUtc, timeZone);
+    const endLocal = formatTimeInZone(endUtc, timeZone);
+
+    const localDateKey = formatDateKey(startUtc, timeZone);
+    const daySuffix = localDateKey === istDate.iso ? "" : localDateKey > istDate.iso ? " (Next day)" : " (Prev day)";
+
+    slots.push(`${startLocal} - ${endLocal} (${label})${daySuffix}`);
   }
+
   return slots;
 }
 
