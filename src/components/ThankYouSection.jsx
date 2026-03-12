@@ -1,16 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function ThankYouSection() {
+  const [visible, setVisible] = useState(false);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onHashChange = () => {
-      if (window.location.hash === "#thank-you") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+
+    const updateVisibility = () => {
+      const hasHash = window.location.hash === "#thank-you";
+      const hasPayment = Boolean(window.localStorage.getItem("ka_last_payment"));
+      setVisible(hasHash || hasPayment);
     };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+
+    updateVisibility();
+    window.addEventListener("hashchange", updateVisibility);
+
+    return () => {
+      window.removeEventListener("hashchange", updateVisibility);
+    };
   }, []);
+
+  if (!visible) return null;
 
   return (
     <section id="thank-you" className="px-4 pb-16 pt-8 md:px-6" aria-labelledby="thank-you-title">
@@ -19,7 +29,7 @@ export default function ThankYouSection() {
           Thank You! Your seat has been reserved.
         </h2>
         <p className="mt-2 text-sm text-slate-700">
-          Your email will receive the date, time, and link for the session soon. Please add it to your calendar.
+          Your email will receive the date, time, and link for the session soon. Please add that to your calendar.
         </p>
       </div>
     </section>
