@@ -298,8 +298,8 @@ export default function LeadForm() {
             </select>
           </div>
 
-          <div>
-            <p className="mb-2 select-none text-sm font-medium text-slate-800">
+          <div className="space-y-2">
+            <p className="select-none text-sm font-medium text-slate-800">
               Preferred Date
             </p>
             <input
@@ -311,7 +311,7 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Preferred date"
               required
-              className="w-full cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              className="block min-h-[46px] w-full cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
             />
             <p className="mt-1 text-xs font-medium text-emerald-700">
               Programs start on weekends only. Please choose a Saturday or Sunday.
