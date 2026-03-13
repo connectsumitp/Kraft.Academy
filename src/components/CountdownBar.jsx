@@ -38,11 +38,6 @@ function formatTime(totalSeconds) {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-function getStoredDate() {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem("ka_date") || "";
-}
-
 export default function CountdownBar() {
   const [secondsLeft, setSecondsLeft] = useState(getSecondsUntilIstMidnight);
 
