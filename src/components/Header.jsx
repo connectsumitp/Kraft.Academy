@@ -31,12 +31,12 @@ export default function Header() {
           </svg>
         </button>
 
-        <ul className="hidden items-center gap-5 md:flex">
+        <ul className="hidden items-center gap-3 lg:gap-5 md:flex">
           {navItems.map((item) => (
             <li key={item.href}>
               <a
                 href={item.href}
-                className="rounded-lg px-2 py-1 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                className="rounded-lg px-2 py-1 text-xs font-medium text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:text-sm"
               >
                 {item.label}
               </a>
@@ -45,7 +45,7 @@ export default function Header() {
           <li>
             <a
               href="#workshop-form"
-              className="animate-bounce rounded-xl bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-900 shadow-lg shadow-amber-300/40 ring-2 ring-amber-200 transition hover:bg-amber-300"
+              className="inline-flex max-w-[11.5rem] items-center justify-center text-center leading-tight animate-bounce rounded-xl bg-amber-400 px-3 py-2 text-xs font-extrabold text-slate-900 shadow-lg shadow-amber-300/40 ring-2 ring-amber-200 transition hover:bg-amber-300 lg:max-w-none lg:px-4 lg:text-sm"
             >
               Reserve seats for your child
             </a>

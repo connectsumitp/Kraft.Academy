@@ -1,6 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { useRef } from "react";
 import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 
 const localeCountryMap = {
@@ -37,22 +36,7 @@ function getDefaultCountry() {
   return localeCountryMap[locale] || locale.split("-")[1] || "US";
 }
 
-function formatDisplayDate(value) {
-  if (!value) return "";
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  })
-    .format(date)
-    .replace(/ /g, "-");
-}
-
 export default function WorkshopLeadForm() {
-  const dateInputRef = useRef(null);
   const [form, setForm] = useState({
     name: "",
     contact: "",
@@ -73,14 +57,6 @@ export default function WorkshopLeadForm() {
   const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, form.date), [form.country, form.date]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
-
-  const openDatePicker = () => {
-    if (dateInputRef.current?.showPicker) {
-      dateInputRef.current.showPicker();
-      return;
-    }
-    dateInputRef.current?.click();
-  };
 
   useEffect(() => {
     let active = true;
@@ -318,37 +294,20 @@ export default function WorkshopLeadForm() {
             </div>
 
             <div>
-              <label htmlFor="workshop-date" className="mb-1 block text-sm font-medium text-slate-800">
+              <p className="mb-2 select-none text-sm font-medium text-slate-800">
                 Preferred Date
-              </label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={openDatePicker}
-                  className="flex w-full items-center justify-between rounded-xl border border-slate-300 px-4 py-2 text-left text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-                  aria-label="Preferred date"
-                >
-                  <span>{form.date ? formatDisplayDate(form.date) : "Select date"}</span>
-                  <span className="text-slate-500" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2">
-                      <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
-                    </svg>
-                  </span>
-                </button>
-                <input
-                  ref={dateInputRef}
-                  id="workshop-date"
-                  name="date"
-                  type="date"
-                  value={form.date}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={onChange}
-                  aria-hidden="true"
-                  tabIndex={-1}
-                  required
-                  className="sr-only"
-                />
-              </div>
+              </p>
+              <input
+                id="workshop-date"
+                name="date"
+                type="date"
+                value={form.date}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={onChange}
+                aria-label="Preferred date"
+                required
+                className="w-full cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              />
             </div>
 
             <div>
@@ -425,3 +384,5 @@ export default function WorkshopLeadForm() {
     </>
   );
 }
+
+
