@@ -49,6 +49,16 @@ const countryCurrencyMap = {
   NZ: "NZD",
 };
 
+const dialCodeMap = [
+  { code: "+1", countries: ["US", "CA"] },
+  { code: "+44", countries: ["GB"] },
+  { code: "+971", countries: ["AE"] },
+  { code: "+65", countries: ["SG"] },
+  { code: "+61", countries: ["AU"] },
+  { code: "+64", countries: ["NZ"] },
+  { code: "+91", countries: ["IN"] },
+];
+
 function getCurrencyForCountry(countryCode) {
   if (!countryCode) return "USD";
   if (countryCurrencyMap[countryCode]) return countryCurrencyMap[countryCode];
@@ -123,8 +133,22 @@ function getLeadDetails() {
   };
 }
 
+function getCountryFromPhone(value) {
+  if (!value || typeof value !== "string") return "";
+  const match = dialCodeMap.find((entry) => value.startsWith(entry.code));
+  return match ? match.countries[0] : "";
+}
+
+function getRegionFromContact(contact) {
+  if (!contact || typeof contact !== "string") return "";
+  if (contact.startsWith("+91")) return "IN";
+  if (contact.startsWith("+")) return "GLOBAL";
+  return "";
+}
+
 export default function PricingSection() {
   const [country, setCountry] = useState("");
+  const [contact, setContact] = useState("");
   const [paymentRegion, setPaymentRegion] = useState("GLOBAL");
   const [currency, setCurrency] = useState("USD");
   const [rates, setRates] = useState(fallbackRates);
@@ -134,10 +158,14 @@ export default function PricingSection() {
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("ka_country") : "";
+    const storedContact = typeof window !== "undefined" ? window.localStorage.getItem("ka_contact") : "";
     if (stored) {
       setCountry(stored);
       setCurrency(getCurrencyForCountry(stored));
       setPaymentRegion(stored === "IN" ? "IN" : "GLOBAL");
+    }
+    if (storedContact) {
+      setContact(storedContact);
     }
 
     const onCountryChange = () => {
@@ -149,8 +177,17 @@ export default function PricingSection() {
       }
     };
 
+    const onContactChange = () => {
+      const updatedContact = window.localStorage.getItem("ka_contact") || "";
+      setContact(updatedContact);
+    };
+
     window.addEventListener("ka-country-change", onCountryChange);
-    return () => window.removeEventListener("ka-country-change", onCountryChange);
+    window.addEventListener("ka-contact-change", onContactChange);
+    return () => {
+      window.removeEventListener("ka-country-change", onCountryChange);
+      window.removeEventListener("ka-contact-change", onContactChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -191,8 +228,22 @@ export default function PricingSection() {
     };
   }, []);
 
-  const inferredRegion = country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion;
-  const isRegionLocked = Boolean(country);
+  const contactCountry = useMemo(() => getCountryFromPhone(contact), [contact]);
+  const contactRegion = useMemo(() => getRegionFromContact(contact), [contact]);
+  const inferredRegion = contactRegion || (country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion);
+  const displayCurrency = useMemo(() => {
+    if (inferredRegion === "IN") return "INR";
+    if (contactCountry && contactCountry !== "IN") return getCurrencyForCountry(contactCountry);
+    if (country && country !== "IN") return getCurrencyForCountry(country);
+    return "USD";
+  }, [country, inferredRegion, contactCountry]);
+  const isRegionLocked = Boolean(contactRegion || country);
+
+  useEffect(() => {
+    if (contactRegion) {
+      setPaymentRegion(contactRegion);
+    }
+  }, [contactRegion]);
 
   const pricingInfo = useMemo(() => {
     if (inferredRegion === "IN") {
@@ -203,17 +254,18 @@ export default function PricingSection() {
       };
     }
 
-    const fx = rates[currency] || fallbackRates[currency] || 1;
+    const fx = rates[displayCurrency] || fallbackRates[displayCurrency] || 1;
     const converted = GLOBAL_AMOUNT_INR * fx;
     const rounded = applyPsychologicalRounding(converted);
 
     return {
-      label: formatMoney(rounded, currency),
+      label: formatMoney(rounded, displayCurrency),
       amount: rounded,
-      currency,
+      currency: displayCurrency,
       raw: converted,
+      baseInr: GLOBAL_AMOUNT_INR,
     };
-  }, [inferredRegion, currency, rates]);
+  }, [inferredRegion, displayCurrency, rates]);
 
   const programInr = Number(import.meta.env.VITE_PROGRAM_AMOUNT_INR || 0);
   const programGlobalInr = Number(import.meta.env.VITE_PROGRAM_GLOBAL_INR || 0);
@@ -221,7 +273,7 @@ export default function PricingSection() {
   const programPricing = useMemo(() => {
     const baseInr = inferredRegion === "IN" ? programInr : programGlobalInr;
     if (!baseInr) {
-      return { label: "Set program price", amount: 0, currency: inferredRegion === "IN" ? "INR" : currency };
+      return { label: "Set program price", amount: 0, currency: inferredRegion === "IN" ? "INR" : displayCurrency };
     }
     if (inferredRegion === "IN") {
       return {
@@ -230,16 +282,17 @@ export default function PricingSection() {
         currency: "INR",
       };
     }
-    const fx = rates[currency] || fallbackRates[currency] || 1;
+    const fx = rates[displayCurrency] || fallbackRates[displayCurrency] || 1;
     const converted = baseInr * fx;
     const rounded = applyPsychologicalRounding(converted);
     return {
-      label: formatMoney(rounded, currency),
+      label: formatMoney(rounded, displayCurrency),
       amount: rounded,
-      currency,
+      currency: displayCurrency,
       raw: converted,
+      baseInr,
     };
-  }, [programInr, programGlobalInr, inferredRegion, currency, rates]);
+  }, [programInr, programGlobalInr, inferredRegion, displayCurrency, rates]);
 
   const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "/api/razorpay-order";
 
@@ -421,13 +474,15 @@ export default function PricingSection() {
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                {country
+                {contactRegion
                   ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on contact.`
-                  : "Choose a payment region if you haven't entered your contact."}
+                  : country
+                    ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on contact.`
+                    : "Choose a payment region if you haven't entered your contact."}
               </p>
               {inferredRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500">
-                  Country detected: {country || "Not selected"} • Currency: {currency}
+                  Country detected: {country || "Not selected"} • Currency: {displayCurrency}
                 </p>
               )}
             </div>
@@ -438,7 +493,9 @@ export default function PricingSection() {
               <p className="text-sm font-semibold text-slate-800">Workshop Payment</p>
               <p className="mt-1 text-sm text-slate-700">Pay {pricingInfo.label}</p>
               {inferredRegion === "GLOBAL" && (
-                <p className="mt-1 text-xs text-slate-500">Converted from {GLOBAL_AMOUNT_INR} INR with psychological rounding.</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  ~{formatMoney(pricingInfo.raw, displayCurrency)} for {pricingInfo.baseInr} INR.
+                </p>
               )}
               <button
                 type="button"
@@ -457,6 +514,11 @@ export default function PricingSection() {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm font-semibold text-slate-800">Program Payment</p>
               <p className="mt-1 text-sm text-slate-700">Pay {programPricing.label}</p>
+              {inferredRegion === "GLOBAL" && programPricing.baseInr && (
+                <p className="mt-1 text-xs text-slate-500">
+                  ~{formatMoney(programPricing.raw, displayCurrency)} for {programPricing.baseInr} INR.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => handleCheckout("program")}

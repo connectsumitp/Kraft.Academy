@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 
@@ -13,6 +13,22 @@ const localeCountryMap = {
   "en-IE": "IE",
   "en-NZ": "NZ",
 };
+
+const dialCodeMap = [
+  { code: "+1", countries: ["US", "CA"] },
+  { code: "+44", countries: ["GB"] },
+  { code: "+971", countries: ["AE"] },
+  { code: "+65", countries: ["SG"] },
+  { code: "+61", countries: ["AU"] },
+  { code: "+64", countries: ["NZ"] },
+  { code: "+91", countries: ["IN"] },
+];
+
+function getCountryFromPhone(value) {
+  if (!value || typeof value !== "string") return "";
+  const match = dialCodeMap.find((entry) => value.startsWith(entry.code));
+  return match ? match.countries[0] : "";
+}
 
 function getDefaultCountry() {
   if (typeof navigator === "undefined") return "US";
@@ -35,22 +51,44 @@ export default function LeadForm() {
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+  const [geoCountry, setGeoCountry] = useState("");
 
   const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
   const timingOptions = useMemo(() => getTimingOptions(form.country), [form.country]);
   const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
+  const resolvedDefaultCountry = geoCountry || defaultCountry;
+
+  useEffect(() => {
+    let active = true;
+    const geoUrl = import.meta.env.VITE_GEOIP_URL || "https://ipapi.co/json/";
+    fetch(geoUrl)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data) return;
+        const code = (data.country_code || data.country || data.countryCode || "").toUpperCase();
+        if (code) {
+          setGeoCountry(code);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!form.country && typeof window !== "undefined") {
       const storedCountry = window.localStorage.getItem("ka_country");
       if (storedCountry) {
         setForm((prev) => ({ ...prev, country: storedCountry }));
+      } else if (geoCountry) {
+        setForm((prev) => ({ ...prev, country: geoCountry }));
       } else if (defaultCountry) {
         setForm((prev) => ({ ...prev, country: defaultCountry }));
       }
     }
-  }, [defaultCountry, form.country]);
+  }, [defaultCountry, form.country, geoCountry]);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -174,7 +212,7 @@ export default function LeadForm() {
             <PhoneInput
               id="contact"
               international
-              defaultCountry={defaultCountry}
+              defaultCountry={resolvedDefaultCountry}
               countryCallingCodeEditable={false}
               countrySelectProps={{ "aria-label": "Country" }}
               placeholder="Enter contact number"
@@ -184,6 +222,13 @@ export default function LeadForm() {
                 setForm((prev) => ({ ...prev, contact: next }));
                 if (typeof window !== "undefined") {
                   window.localStorage.setItem("ka_contact", next);
+                  window.dispatchEvent(new Event("ka-contact-change"));
+                  const inferred = getCountryFromPhone(next);
+                  if (inferred && inferred !== form.country) {
+                    setForm((prev) => ({ ...prev, country: inferred, timing: "" }));
+                    window.localStorage.setItem("ka_country", inferred);
+                    window.dispatchEvent(new Event("ka-country-change"));
+                  }
                 }
               }}
               onCountryChange={(country) => {
@@ -306,12 +351,3 @@ export default function LeadForm() {
     </section>
   );
 }
-
-
-
-
-
-
-
-
-
