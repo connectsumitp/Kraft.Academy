@@ -9,7 +9,7 @@ export default function ThankYouSection() {
 
     const updateVisibility = () => {
       const hasHash = window.location.hash === "#thank-you";
-      const lastPayment = window.localStorage.getItem("ka_last_payment") || "";
+      const lastPayment = window.sessionStorage.getItem("ka_last_payment") || "";
       const hasPayment = Boolean(lastPayment);
       setPaymentType(lastPayment);
       setVisible(hasHash || hasPayment);
@@ -34,6 +34,16 @@ export default function ThankYouSection() {
     };
 
     const timer = window.setTimeout(scrollToThankYou, 100);
+    return () => window.clearTimeout(timer);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || typeof window === "undefined") return;
+
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.removeItem("ka_last_payment");
+    }, 500);
+
     return () => window.clearTimeout(timer);
   }, [visible]);
 

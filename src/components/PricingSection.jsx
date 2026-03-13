@@ -362,7 +362,7 @@ export default function PricingSection() {
         prefill,
         handler: async function () {
           if (typeof window !== "undefined") {
-            window.localStorage.setItem("ka_last_payment", purpose);
+            window.sessionStorage.setItem("ka_last_payment", purpose);
             window.location.hash = "#thank-you";
           }
           try {
