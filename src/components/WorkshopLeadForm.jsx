@@ -40,11 +40,12 @@ export default function WorkshopLeadForm() {
   const defaultCountry = useMemo(getDefaultCountry, []);
 
   useEffect(() => {
-    if (!form.country && defaultCountry) {
-      setForm((prev) => ({ ...prev, country: defaultCountry }));
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("ka_country", defaultCountry);
-        window.dispatchEvent(new Event("ka-country-change"));
+    if (!form.country && typeof window !== "undefined") {
+      const storedCountry = window.localStorage.getItem("ka_country");
+      if (storedCountry) {
+        setForm((prev) => ({ ...prev, country: storedCountry }));
+      } else if (defaultCountry) {
+        setForm((prev) => ({ ...prev, country: defaultCountry }));
       }
     }
   }, [defaultCountry, form.country]);
@@ -104,11 +105,24 @@ export default function WorkshopLeadForm() {
         window.fbq("track", "Lead", { lead_type: "workshop", source: "website_workshop_top_form" });
       }
       if (typeof window !== "undefined") {
-        window.location.hash = "#pricing";
+        const target = document.getElementById("razorpay-checkout");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.dispatchEvent(new Event("ka-razorpay-focus"));
+        } else {
+          window.location.hash = "#razorpay-checkout";
+        }
         setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
       }
 
-      setForm({ name: "", contact: "", email: "", age: "", country: "", timing: "" });
+      setForm((prev) => ({
+        name: "",
+        contact: "",
+        email: "",
+        age: "",
+        country: prev.country,
+        timing: "",
+      }));
       setTouched(false);
       setShowSuccess(true);
     } catch (error) {

@@ -42,11 +42,12 @@ export default function LeadForm() {
   const defaultCountry = useMemo(getDefaultCountry, []);
 
   useEffect(() => {
-    if (!form.country && defaultCountry) {
-      setForm((prev) => ({ ...prev, country: defaultCountry }));
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("ka_country", defaultCountry);
-        window.dispatchEvent(new Event("ka-country-change"));
+    if (!form.country && typeof window !== "undefined") {
+      const storedCountry = window.localStorage.getItem("ka_country");
+      if (storedCountry) {
+        setForm((prev) => ({ ...prev, country: storedCountry }));
+      } else if (defaultCountry) {
+        setForm((prev) => ({ ...prev, country: defaultCountry }));
       }
     }
   }, [defaultCountry, form.country]);
@@ -112,12 +113,26 @@ export default function LeadForm() {
       });
 
       if (typeof window !== "undefined") {
-        window.location.hash = "#pricing";
+        const target = document.getElementById("razorpay-checkout");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.dispatchEvent(new Event("ka-razorpay-focus"));
+        } else {
+          window.location.hash = "#razorpay-checkout";
+        }
         setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
       } else {
         setSubmitMessage("Thanks! Your program enquiry is submitted successfully.");
       }
-      setForm({ name: "", contact: "", email: "", age: "", country: "", program: "", timing: "" });
+      setForm((prev) => ({
+        name: "",
+        contact: "",
+        email: "",
+        age: "",
+        country: prev.country,
+        program: "",
+        timing: "",
+      }));
       setTouched(false);
     } catch (error) {
       setSubmitMessage("Submission failed. Check Apps Script deployment access and sheet name, then try again.");

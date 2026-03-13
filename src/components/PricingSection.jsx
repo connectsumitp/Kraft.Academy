@@ -130,6 +130,7 @@ export default function PricingSection() {
   const [rates, setRates] = useState(fallbackRates);
   const [rateSource, setRateSource] = useState("fallback");
   const [checkoutStatus, setCheckoutStatus] = useState("");
+  const [isHighlighted, setIsHighlighted] = useState(false);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("ka_country") : "";
@@ -143,11 +144,28 @@ export default function PricingSection() {
       const updated = window.localStorage.getItem("ka_country") || "";
       setCountry(updated);
       setCurrency(getCurrencyForCountry(updated));
-      setPaymentRegion(updated === "IN" ? "IN" : "GLOBAL");
+      if (updated) {
+        setPaymentRegion(updated === "IN" ? "IN" : "GLOBAL");
+      }
     };
 
     window.addEventListener("ka-country-change", onCountryChange);
     return () => window.removeEventListener("ka-country-change", onCountryChange);
+  }, []);
+
+  useEffect(() => {
+    const onHighlight = () => {
+      setIsHighlighted(true);
+      setTimeout(() => setIsHighlighted(false), 2000);
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("ka-razorpay-focus", onHighlight);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("ka-razorpay-focus", onHighlight);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -173,8 +191,11 @@ export default function PricingSection() {
     };
   }, []);
 
+  const inferredRegion = country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion;
+  const isRegionLocked = Boolean(country);
+
   const pricingInfo = useMemo(() => {
-    if (paymentRegion === "IN") {
+    if (inferredRegion === "IN") {
       return {
         label: formatMoney(INDIA_AMOUNT_INR, "INR"),
         amount: INDIA_AMOUNT_INR,
@@ -192,17 +213,17 @@ export default function PricingSection() {
       currency,
       raw: converted,
     };
-  }, [paymentRegion, currency, rates]);
+  }, [inferredRegion, currency, rates]);
 
   const programInr = Number(import.meta.env.VITE_PROGRAM_AMOUNT_INR || 0);
   const programGlobalInr = Number(import.meta.env.VITE_PROGRAM_GLOBAL_INR || 0);
 
   const programPricing = useMemo(() => {
-    const baseInr = paymentRegion === "IN" ? programInr : programGlobalInr;
+    const baseInr = inferredRegion === "IN" ? programInr : programGlobalInr;
     if (!baseInr) {
-      return { label: "Set program price", amount: 0, currency: paymentRegion === "IN" ? "INR" : currency };
+      return { label: "Set program price", amount: 0, currency: inferredRegion === "IN" ? "INR" : currency };
     }
-    if (paymentRegion === "IN") {
+    if (inferredRegion === "IN") {
       return {
         label: formatMoney(baseInr, "INR"),
         amount: baseInr,
@@ -218,7 +239,7 @@ export default function PricingSection() {
       currency,
       raw: converted,
     };
-  }, [programInr, programGlobalInr, paymentRegion, currency, rates]);
+  }, [programInr, programGlobalInr, inferredRegion, currency, rates]);
 
   const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "/api/razorpay-order";
 
@@ -255,7 +276,7 @@ export default function PricingSection() {
         receipt: `ka_${purpose}_${Date.now()}`,
         notes: {
           country: country || "",
-          payment_region: paymentRegion,
+          payment_region: inferredRegion,
         },
       };
 
@@ -362,7 +383,12 @@ export default function PricingSection() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div
+          id="razorpay-checkout"
+          className={`mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition ${
+            isHighlighted ? "ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : ""
+          }`}
+        >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-lg font-bold text-slate-900">Razorpay Checkout</h3>
@@ -375,24 +401,31 @@ export default function PricingSection() {
               <div className="flex items-center gap-2 rounded-full bg-slate-100 p-1">
                 <button
                   type="button"
-                  onClick={() => setPaymentRegion("IN")}
+                  onClick={() => !isRegionLocked && setPaymentRegion("IN")}
+                  disabled={isRegionLocked}
                   className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    paymentRegion === "IN" ? "bg-slate-900 text-white" : "text-slate-700"
-                  }`}
+                    inferredRegion === "IN" ? "bg-slate-900 text-white" : "text-slate-700"
+                  } ${isRegionLocked ? "cursor-not-allowed opacity-70" : ""}`}
                 >
                   India
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentRegion("GLOBAL")}
+                  onClick={() => !isRegionLocked && setPaymentRegion("GLOBAL")}
+                  disabled={isRegionLocked}
                   className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    paymentRegion === "GLOBAL" ? "bg-slate-900 text-white" : "text-slate-700"
-                  }`}
+                    inferredRegion === "GLOBAL" ? "bg-slate-900 text-white" : "text-slate-700"
+                  } ${isRegionLocked ? "cursor-not-allowed opacity-70" : ""}`}
                 >
                   Global
                 </button>
               </div>
-              {paymentRegion === "GLOBAL" && (
+              <p className="text-xs text-slate-500">
+                {country
+                  ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on contact.`
+                  : "Choose a payment region if you haven't entered your contact."}
+              </p>
+              {inferredRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500">
                   Country detected: {country || "Not selected"} • Currency: {currency}
                 </p>
@@ -404,7 +437,7 @@ export default function PricingSection() {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm font-semibold text-slate-800">Workshop Payment</p>
               <p className="mt-1 text-sm text-slate-700">Pay {pricingInfo.label}</p>
-              {paymentRegion === "GLOBAL" && (
+              {inferredRegion === "GLOBAL" && (
                 <p className="mt-1 text-xs text-slate-500">Converted from {GLOBAL_AMOUNT_INR} INR with psychological rounding.</p>
               )}
               <button
