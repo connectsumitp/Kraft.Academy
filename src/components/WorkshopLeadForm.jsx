@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { countryOptions, getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -39,16 +39,18 @@ export default function WorkshopLeadForm() {
   const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "country") {
+  useEffect(() => {
+    if (!form.country && defaultCountry) {
+      setForm((prev) => ({ ...prev, country: defaultCountry }));
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("ka_country", value);
+        window.localStorage.setItem("ka_country", defaultCountry);
         window.dispatchEvent(new Event("ka-country-change"));
       }
-      setForm((prev) => ({ ...prev, country: value, timing: "" }));
-      return;
     }
+  }, [defaultCountry, form.country]);
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
     }
@@ -101,6 +103,10 @@ export default function WorkshopLeadForm() {
       if (typeof window !== "undefined" && typeof window.fbq === "function") {
         window.fbq("track", "Lead", { lead_type: "workshop", source: "website_workshop_top_form" });
       }
+      if (typeof window !== "undefined") {
+        window.location.hash = "#pricing";
+        setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
+      }
 
       setForm({ name: "", contact: "", email: "", age: "", country: "", timing: "" });
       setTouched(false);
@@ -123,6 +129,7 @@ export default function WorkshopLeadForm() {
           <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
             Includes AI Study Toolkit
           </p>
+          <p className="mt-3 text-xs font-semibold text-emerald-700">AI workshop is available every day.</p>
 
           <form className="mt-6 grid gap-4 md:grid-cols-3" onSubmit={onSubmit} noValidate>
             <div>
@@ -158,6 +165,16 @@ export default function WorkshopLeadForm() {
                   setForm((prev) => ({ ...prev, contact: next }));
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
+                  }
+                }}
+                onCountryChange={(country) => {
+                  const nextCountry = country || "";
+                  if (nextCountry && nextCountry !== form.country) {
+                    setForm((prev) => ({ ...prev, country: nextCountry, timing: "" }));
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem("ka_country", nextCountry);
+                      window.dispatchEvent(new Event("ka-country-change"));
+                    }
                   }
                 }}
                 className="phone-input"
@@ -207,28 +224,6 @@ export default function WorkshopLeadForm() {
             </div>
 
             <div>
-              <label htmlFor="workshop-country" className="mb-1 block text-sm font-medium text-slate-800">
-                Country
-              </label>
-              <select
-                id="workshop-country"
-                name="country"
-                value={form.country}
-                onChange={onChange}
-                aria-label="Country"
-                required
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="">Select Country</option>
-                {countryOptions.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
               <label htmlFor="workshop-timing" className="mb-1 block text-sm font-medium text-slate-800">
                 Timing
               </label>
@@ -242,7 +237,7 @@ export default function WorkshopLeadForm() {
                 disabled={!form.country}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-                <option value="">{form.country ? "Select Timing" : "Select Country First"}</option>
+                <option value="">{form.country ? "Select Timing" : "Select Country on Contact First"}</option>
                 {timingOptions.map((timing) => (
                   <option key={timing} value={timing}>
                     {timing}
@@ -275,9 +270,10 @@ export default function WorkshopLeadForm() {
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-xl font-bold text-slate-900">Seat Reserved</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-700">
-              Your seat has been reserved. We&apos;ll contact you with the Workshop Date/Timing Link & Payment Link soon.
+              Done. Please complete the payment to confirm your seat. We&apos;ll share the session link via email once the
+              payment is completed.
             </p>
-            <p className="mt-2 text-sm text-slate-700">For enquiries, hit the WhatsApp or Email icon.</p>
+            <p className="mt-2 text-sm text-slate-700">For enquiry, hit the WhatsApp button or mail us.</p>
             <div className="mt-5 flex gap-3">
               <button
                 type="button"
@@ -301,3 +297,18 @@ export default function WorkshopLeadForm() {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

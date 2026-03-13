@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+ï»¿import { useEffect, useMemo, useState } from "react";
 
 const INDIA_AMOUNT_INR = 99;
 const GLOBAL_AMOUNT_INR = 1000;
@@ -220,12 +220,12 @@ export default function PricingSection() {
     };
   }, [programInr, programGlobalInr, paymentRegion, currency, rates]);
 
-  const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "";
+  const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "/api/razorpay-order";
 
   const handleCheckout = async (purpose) => {
     setCheckoutStatus("");
     if (!orderScriptUrl) {
-      setCheckoutStatus("Missing order script URL. Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env.");
+      setCheckoutStatus("Missing order endpoint. Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env or deploy /api/razorpay-order.");
       return;
     }
 
@@ -261,7 +261,7 @@ export default function PricingSection() {
 
       const response = await fetch(orderScriptUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
       });
 
@@ -294,7 +294,7 @@ export default function PricingSection() {
             const lead = getLeadDetails();
             await fetch(orderScriptUrl, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
               body: JSON.stringify({
                 action: "send_confirmation",
                 purpose,
@@ -353,7 +353,7 @@ export default function PricingSection() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold text-slate-900">Coding Bootcamp</h3>
-            <p className="mt-2 text-sm text-slate-700">2-month coding program for Ages 11–18.</p>
+            <p className="mt-2 text-sm text-slate-700">2-month coding program for Ages 11â€“18.</p>
             <ul className="mt-3 space-y-2 text-sm text-slate-700">
               <li>Logic building</li>
               <li>Mini projects</li>
@@ -394,7 +394,7 @@ export default function PricingSection() {
               </div>
               {paymentRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500">
-                  Country detected: {country || "Not selected"} • Currency: {currency}
+                  Country detected: {country || "Not selected"} â€¢ Currency: {currency}
                 </p>
               )}
             </div>

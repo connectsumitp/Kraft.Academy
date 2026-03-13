@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { countryOptions, getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -41,17 +41,18 @@ export default function LeadForm() {
   const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === "country") {
+  useEffect(() => {
+    if (!form.country && defaultCountry) {
+      setForm((prev) => ({ ...prev, country: defaultCountry }));
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("ka_country", value);
+        window.localStorage.setItem("ka_country", defaultCountry);
         window.dispatchEvent(new Event("ka-country-change"));
       }
-      setForm((prev) => ({ ...prev, country: value, timing: "" }));
-      return;
     }
+  }, [defaultCountry, form.country]);
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
 
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
@@ -110,7 +111,12 @@ export default function LeadForm() {
         body,
       });
 
-      setSubmitMessage("Thanks! Your program enquiry is submitted successfully.");
+      if (typeof window !== "undefined") {
+        window.location.hash = "#pricing";
+        setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
+      } else {
+        setSubmitMessage("Thanks! Your program enquiry is submitted successfully.");
+      }
       setForm({ name: "", contact: "", email: "", age: "", country: "", program: "", timing: "" });
       setTouched(false);
     } catch (error) {
@@ -127,6 +133,7 @@ export default function LeadForm() {
           Program Registration
         </h2>
         <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp or Email.</p>
+        <p className="mt-2 text-xs font-semibold text-emerald-700">Programs are available on weekends only.</p>
 
         <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
           <div>
@@ -162,6 +169,16 @@ export default function LeadForm() {
                 setForm((prev) => ({ ...prev, contact: next }));
                 if (typeof window !== "undefined") {
                   window.localStorage.setItem("ka_contact", next);
+                }
+              }}
+              onCountryChange={(country) => {
+                const nextCountry = country || "";
+                if (nextCountry && nextCountry !== form.country) {
+                  setForm((prev) => ({ ...prev, country: nextCountry, timing: "" }));
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem("ka_country", nextCountry);
+                    window.dispatchEvent(new Event("ka-country-change"));
+                  }
                 }
               }}
               className="phone-input"
@@ -211,28 +228,6 @@ export default function LeadForm() {
           </div>
 
           <div>
-            <label htmlFor="country" className="mb-1 block text-sm font-medium text-slate-800">
-              Country
-            </label>
-            <select
-              id="country"
-              name="country"
-              value={form.country}
-              onChange={onChange}
-              aria-label="Country"
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">Select Country</option>
-              {countryOptions.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
             <label htmlFor="program" className="mb-1 block text-sm font-medium text-slate-800">
               Select Program
             </label>
@@ -268,7 +263,7 @@ export default function LeadForm() {
               disabled={!form.country}
               className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
             >
-              <option value="">{form.country ? "Select Timing" : "Select Country First"}</option>
+              <option value="">{form.country ? "Select Timing" : "Select Country on Contact First"}</option>
               {timingOptions.map((timing) => (
                 <option key={timing} value={timing}>
                   {timing}
@@ -296,3 +291,12 @@ export default function LeadForm() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
