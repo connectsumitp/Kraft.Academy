@@ -78,11 +78,10 @@ function formatMoney(value, currency) {
   }
 }
 
-function applyPsychologicalRounding(value) {
+function getConvertedAmount(value) {
   if (!Number.isFinite(value)) return value;
-  if (value <= 0) return 9;
-  const rounded = Math.ceil(value / 10) * 10 - 1;
-  return Math.max(9, rounded);
+  if (value <= 0) return 0;
+  return Math.max(1, Math.round(value));
 }
 
 function getSubunitFactor(currency) {
@@ -256,7 +255,7 @@ export default function PricingSection() {
 
     const fx = rates[displayCurrency] || fallbackRates[displayCurrency] || 1;
     const converted = GLOBAL_AMOUNT_INR * fx;
-    const rounded = applyPsychologicalRounding(converted);
+    const rounded = getConvertedAmount(converted);
 
     return {
       label: formatMoney(rounded, displayCurrency),
@@ -284,7 +283,7 @@ export default function PricingSection() {
     }
     const fx = rates[displayCurrency] || fallbackRates[displayCurrency] || 1;
     const converted = baseInr * fx;
-    const rounded = applyPsychologicalRounding(converted);
+    const rounded = getConvertedAmount(converted);
     return {
       label: formatMoney(rounded, displayCurrency),
       amount: rounded,

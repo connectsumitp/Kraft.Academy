@@ -93,6 +93,17 @@ function buildIstDateUtc(year, month, day, hour, minute) {
   return new Date(Date.UTC(year, month - 1, day, utcHour, utcMinute, 0));
 }
 
+function parseIsoDateParts(isoDate) {
+  const [year, month, day] = String(isoDate).split("-").map(Number);
+  return { year, month, day };
+}
+
+function addDaysToIsoDate(isoDate, days) {
+  const { year, month, day } = parseIsoDateParts(isoDate);
+  const utcDate = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0));
+  return utcDate.toISOString().slice(0, 10);
+}
+
 function formatTimeInZone(date, timeZone) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -113,22 +124,40 @@ function formatDateKey(date, timeZone) {
   return formatter.format(date);
 }
 
-function buildSlotsForZone(timeZone) {
+function buildSlotsForZone(timeZone, selectedDate) {
   const label = getZoneLabel(timeZone);
   const slots = [];
-  const istDate = getIstDateParts();
+  const baseDate = selectedDate || getIstDateParts().iso;
+  const candidateIstDates = [addDaysToIsoDate(baseDate, -1), baseDate, addDaysToIsoDate(baseDate, 1)];
 
-  for (let hour = 9; hour < 22; hour += 1) {
-    const startUtc = buildIstDateUtc(istDate.year, istDate.month, istDate.day, hour, 0);
-    const endUtc = buildIstDateUtc(istDate.year, istDate.month, istDate.day, hour + 1, 0);
+  candidateIstDates.forEach((istIsoDate) => {
+    const { year, month, day } = parseIsoDateParts(istIsoDate);
 
-    const startLocal = formatTimeInZone(startUtc, timeZone);
-    const endLocal = formatTimeInZone(endUtc, timeZone);
+    for (let hour = 9; hour < 22; hour += 1) {
+      const startUtc = buildIstDateUtc(year, month, day, hour, 0);
+      const endUtc = buildIstDateUtc(year, month, day, hour + 1, 0);
+      const localDateKey = formatDateKey(startUtc, timeZone);
 
-    const localDateKey = formatDateKey(startUtc, timeZone);
-    const daySuffix = localDateKey === istDate.iso ? "" : localDateKey > istDate.iso ? " (Next day)" : " (Prev day)";
+      if (selectedDate && localDateKey !== selectedDate) {
+        continue;
+      }
 
-    slots.push(`${startLocal} - ${endLocal} (${label})${daySuffix}`);
+      const startLocal = formatTimeInZone(startUtc, timeZone);
+      const endLocal = formatTimeInZone(endUtc, timeZone);
+      const option = `${startLocal} - ${endLocal} (${label})`;
+
+      if (!slots.includes(option)) {
+        slots.push(option);
+      }
+    }
+  });
+
+  if (selectedDate) {
+    slots.sort((left, right) => {
+      const leftTime = new Date(`2000-01-01 ${left.split(" (")[0]}`);
+      const rightTime = new Date(`2000-01-01 ${right.split(" (")[0]}`);
+      return leftTime - rightTime;
+    });
   }
 
   return slots;
@@ -146,19 +175,23 @@ function getTimeZonesForCountry(countryCode) {
   return timeZoneMap.fallback;
 }
 
-export function getTimingOptions(countryCode) {
+export function getTimingOptions(countryCode, selectedDate) {
   if (!countryCode) return [];
   const zones = getTimeZonesForCountry(countryCode);
   const options = [];
   zones.forEach((zone) => {
-    options.push(...buildSlotsForZone(zone));
+    options.push(...buildSlotsForZone(zone, selectedDate));
   });
   return options;
 }
 
-export function getTimingTimezoneLabel(countryCode) {
+export function getTimingTimezoneLabel(countryCode, selectedDate) {
   if (!countryCode) return "Times shown in local timezone for the selected country.";
   const zones = getTimeZonesForCountry(countryCode);
+  if (selectedDate) {
+    const zoneText = zones.length <= 1 ? getZoneLabel(zones[0]) : zones.map((zone) => getZoneLabel(zone)).join(" / ");
+    return `Times shown for ${selectedDate} in ${zoneText}.`;
+  }
   if (zones.length <= 1) return `Timezone: ${getZoneLabel(zones[0])}`;
   return `Timezones shown: ${zones.map((zone) => getZoneLabel(zone)).join(" / ")}`;
 }

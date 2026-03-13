@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import { useRef } from "react";
 import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 
 const localeCountryMap = {
@@ -36,13 +37,29 @@ function getDefaultCountry() {
   return localeCountryMap[locale] || locale.split("-")[1] || "US";
 }
 
+function formatDisplayDate(value) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+    .format(date)
+    .replace(/ /g, "-");
+}
+
 export default function WorkshopLeadForm() {
+  const dateInputRef = useRef(null);
   const [form, setForm] = useState({
     name: "",
     contact: "",
     email: "",
     age: "",
     country: "",
+    date: "",
     timing: "",
   });
   const [touched, setTouched] = useState(false);
@@ -52,10 +69,18 @@ export default function WorkshopLeadForm() {
   const [geoCountry, setGeoCountry] = useState("");
 
   const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
-  const timingOptions = useMemo(() => getTimingOptions(form.country), [form.country]);
-  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
+  const timingOptions = useMemo(() => getTimingOptions(form.country, form.date), [form.country, form.date]);
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, form.date), [form.country, form.date]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
+
+  const openDatePicker = () => {
+    if (dateInputRef.current?.showPicker) {
+      dateInputRef.current.showPicker();
+      return;
+    }
+    dateInputRef.current?.click();
+  };
 
   useEffect(() => {
     let active = true;
@@ -93,10 +118,18 @@ export default function WorkshopLeadForm() {
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
     }
+    if (name === "date" && typeof window !== "undefined") {
+      window.localStorage.setItem("ka_date", value);
+      window.dispatchEvent(new Event("ka-date-change"));
+    }
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
     }
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      timing: name === "date" ? "" : name === "timing" ? value : prev.timing,
+    }));
   };
 
   const onSubmit = async (e) => {
@@ -104,7 +137,7 @@ export default function WorkshopLeadForm() {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.age || !form.country || !form.timing || !form.email || !isContactValid) {
+    if (!form.name || !form.age || !form.country || !form.date || !form.timing || !form.email || !isContactValid) {
       return;
     }
 
@@ -122,6 +155,7 @@ export default function WorkshopLeadForm() {
         email: form.email,
         age: form.age,
         country: form.country,
+        date: form.date,
         timing: form.timing,
         program: "",
         lead_type: "workshop",
@@ -159,6 +193,7 @@ export default function WorkshopLeadForm() {
         email: "",
         age: "",
         country: prev.country,
+        date: "",
         timing: "",
       }));
       setTouched(false);
@@ -283,6 +318,40 @@ export default function WorkshopLeadForm() {
             </div>
 
             <div>
+              <label htmlFor="workshop-date" className="mb-1 block text-sm font-medium text-slate-800">
+                Preferred Date
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={openDatePicker}
+                  className="flex w-full items-center justify-between rounded-xl border border-slate-300 px-4 py-2 text-left text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+                  aria-label="Preferred date"
+                >
+                  <span>{form.date ? formatDisplayDate(form.date) : "Select date"}</span>
+                  <span className="text-slate-500" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2">
+                      <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+                    </svg>
+                  </span>
+                </button>
+                <input
+                  ref={dateInputRef}
+                  id="workshop-date"
+                  name="date"
+                  type="date"
+                  value={form.date}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={onChange}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  required
+                  className="sr-only"
+                />
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="workshop-timing" className="mb-1 block text-sm font-medium text-slate-800">
                 Timing
               </label>
@@ -293,10 +362,10 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Timing"
                 required
-                disabled={!form.country}
+                disabled={!form.country || !form.date}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-                <option value="">{form.country ? "Select Timing" : "Select Country on Contact First"}</option>
+                <option value="">{form.country && form.date ? "Select Timing" : "Select Date and Contact First"}</option>
                 {timingOptions.map((timing) => (
                   <option key={timing} value={timing}>
                     {timing}
