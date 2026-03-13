@@ -198,6 +198,7 @@ export default function LeadForm() {
         </h2>
         <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp or Email.</p>
         <p className="mt-2 text-xs font-semibold text-emerald-700">Programs are available on weekends only.</p>
+        <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
         <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
           <div>
@@ -311,7 +312,7 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Preferred date"
               required
-              className="block min-h-[46px] w-full cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              className="block h-10 w-full cursor-pointer rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:px-3 md:py-1"
             />
             <p className="mt-1 text-xs font-medium text-emerald-700">
               Programs start on weekends only. Please choose a Saturday or Sunday.

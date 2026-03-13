@@ -193,8 +193,9 @@ export default function WorkshopLeadForm() {
             Includes AI Study Toolkit
           </p>
           <p className="mt-3 text-xs font-semibold text-emerald-700">AI workshop is available every day.</p>
+          <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
-          <form className="mt-6 grid gap-4 md:grid-cols-3" onSubmit={onSubmit} noValidate>
+          <form className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
             <div>
               <label htmlFor="workshop-name" className="mb-1 block text-sm font-medium text-slate-800">
                 Name
@@ -207,11 +208,11 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Student name"
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:py-1"
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2 xl:col-span-1">
               <label htmlFor="workshop-contact" className="mb-1 block text-sm font-medium text-slate-800">
                 Contact
               </label>
@@ -267,7 +268,7 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Email"
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:py-1"
               />
             </div>
 
@@ -282,7 +283,7 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Age"
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:py-1"
               >
                 <option value="">Select Age</option>
                 {[11, 12, 13, 14, 15, 16, 17, 18].map((age) => (
@@ -293,7 +294,7 @@ export default function WorkshopLeadForm() {
               </select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-1">
               <p className="select-none text-sm font-medium text-slate-800">
                 Preferred Date
               </p>
@@ -306,11 +307,11 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Preferred date"
                 required
-                className="block min-h-[46px] w-full cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+                className="block h-10 w-full cursor-pointer rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:px-3 md:py-1"
               />
             </div>
 
-            <div>
+            <div className="md:col-span-1">
               <label htmlFor="workshop-timing" className="mb-1 block text-sm font-medium text-slate-800">
                 Timing
               </label>
@@ -322,7 +323,7 @@ export default function WorkshopLeadForm() {
                 aria-label="Timing"
                 required
                 disabled={!form.country || !form.date}
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="h-10 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100 md:h-9 md:py-1"
               >
                 <option value="">{form.country && form.date ? "Select Timing" : "Select Date and Contact First"}</option>
                 {timingOptions.map((timing) => (
