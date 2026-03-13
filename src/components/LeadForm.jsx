@@ -55,8 +55,8 @@ export default function LeadForm() {
   const [geoCountry, setGeoCountry] = useState("");
 
   const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
-  const timingOptions = useMemo(() => getTimingOptions(form.country, form.date), [form.country, form.date]);
-  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, form.date), [form.country, form.date]);
+  const timingOptions = useMemo(() => getTimingOptions(form.country), [form.country]);
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
 
@@ -97,10 +97,6 @@ export default function LeadForm() {
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
     }
-    if (name === "date" && typeof window !== "undefined") {
-      window.localStorage.setItem("ka_date", value);
-      window.dispatchEvent(new Event("ka-date-change"));
-    }
 
     if (name === "program" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_program", value);
@@ -113,7 +109,7 @@ export default function LeadForm() {
     setForm((prev) => ({
       ...prev,
       [name]: value,
-      timing: name === "date" ? "" : name === "timing" ? value : prev.timing,
+      timing: name === "timing" ? value : prev.timing,
     }));
   };
 
@@ -122,7 +118,7 @@ export default function LeadForm() {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.age || !form.country || !form.date || !form.program || !form.timing || !form.email || !isContactValid) {
+    if (!form.name || !form.age || !form.country || !form.program || !form.timing || !form.email || !isContactValid) {
       return;
     }
 
@@ -140,7 +136,7 @@ export default function LeadForm() {
         email: form.email,
         age: form.age,
         country: form.country,
-        date: form.date,
+        date: "",
         program: form.program,
         timing: form.timing,
         lead_type: "program",
@@ -299,26 +295,6 @@ export default function LeadForm() {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <p className="select-none text-sm font-medium text-slate-800">
-              Preferred Date
-            </p>
-            <input
-              id="date"
-              name="date"
-              type="date"
-              value={form.date}
-              min={new Date().toISOString().split("T")[0]}
-              onChange={onChange}
-              aria-label="Preferred date"
-              required
-              className="block h-10 w-full cursor-pointer rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:px-3 md:py-1"
-            />
-            <p className="mt-1 text-xs font-medium text-emerald-700">
-              Programs start on weekends only. Please choose a Saturday or Sunday.
-            </p>
-          </div>
-
           <div>
             <label htmlFor="program" className="mb-1 block text-sm font-medium text-slate-800">
               Select Program
@@ -352,10 +328,12 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Select timing"
               required
-                disabled={!form.country || !form.date}
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+              disabled={!form.country}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-              <option value="">{form.country && form.date ? "Select Timing" : "Select Date and Contact First"}</option>
+              <option value="">
+                {form.country ? "Select Timing" : "Select Contact First"}
+              </option>
               {timingOptions.map((timing) => (
                 <option key={timing} value={timing}>
                   {timing}
