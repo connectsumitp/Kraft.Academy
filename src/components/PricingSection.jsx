@@ -127,6 +127,7 @@ function getLeadDetails() {
     contact: window.localStorage.getItem("ka_contact") || "",
     age: window.localStorage.getItem("ka_age") || "",
     country: window.localStorage.getItem("ka_country") || "",
+    date: window.localStorage.getItem("ka_date") || "",
     timing: window.localStorage.getItem("ka_timing") || "",
     program: window.localStorage.getItem("ka_program") || "",
   };
@@ -294,6 +295,7 @@ export default function PricingSection() {
   }, [programInr, programGlobalInr, inferredRegion, displayCurrency, rates]);
 
   const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "/api/razorpay-order";
+  const emailScriptUrl = import.meta.env.VITE_RAZORPAY_EMAIL_SCRIPT_URL || orderScriptUrl;
 
   const handleCheckout = async (purpose) => {
     setCheckoutStatus("");
@@ -365,7 +367,7 @@ export default function PricingSection() {
           }
           try {
             const lead = getLeadDetails();
-            await fetch(orderScriptUrl, {
+            await fetch(emailScriptUrl, {
               method: "POST",
               headers: { "Content-Type": "text/plain;charset=utf-8" },
               body: JSON.stringify({
@@ -376,6 +378,7 @@ export default function PricingSection() {
                 contact: lead.contact,
                 age: lead.age,
                 country: lead.country,
+                date: lead.date,
                 timing: lead.timing,
                 program: lead.program,
               }),

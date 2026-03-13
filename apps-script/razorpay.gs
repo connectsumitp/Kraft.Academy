@@ -1,7 +1,7 @@
 // Razorpay Orders + Confirmation Email via Google Apps Script
 // Deploy as Web App (execute as: Me, access: Anyone)
 // Set Script Properties:
-// RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+// RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, WORKSHOP_SESSION_LINK
 
 function doPost(e) {
   try {
@@ -70,36 +70,178 @@ function sendConfirmationEmail_(body) {
     return jsonOut({ ok: false, error: 'Missing email.' }, 400);
   }
 
+  var props = PropertiesService.getScriptProperties();
   var name = body.name || "Student";
   var purpose = body.purpose || "workshop";
+  var date = body.date || "";
   var timing = body.timing || "";
   var country = body.country || "";
   var contact = body.contact || "";
   var age = body.age || "";
   var program = body.program || "";
+  var workshopSessionLink = props.getProperty('WORKSHOP_SESSION_LINK') || "";
+  var workshopCalendarLink = buildWorkshopCalendarLink_(date, timing, workshopSessionLink);
 
-  var subject = "Kraft Academy | Seat Reserved";
+  var isProgram = purpose === "program";
+  var subject = isProgram ? "Kraft Academy | Program Registration Confirmed" : "Kraft Academy | Workshop Seat Reserved";
   var lines = [];
-  lines.push("Thank you! Your seat has been reserved.");
-  lines.push("Your email will receive the date, time, and link for the session soon. Please add that to your calendar.");
-  lines.push("");
-  lines.push("Details we received:");
-  lines.push("Name: " + name);
-  if (age) lines.push("Age: " + age);
-  if (country) lines.push("Country: " + country);
-  if (timing) lines.push("Timing: " + timing);
-  if (program) lines.push("Program: " + program);
-  if (contact) lines.push("Contact: " + contact);
-  lines.push("");
-  lines.push("We will share the session link shortly.");
+  var html = [];
+
+  if (isProgram) {
+    lines.push("Thank you for registering in our program.");
+    lines.push("We will reach to you with the batch dates.");
+    lines.push("");
+    lines.push("Details we received:");
+    lines.push("Name: " + name);
+    if (age) lines.push("Age: " + age);
+    if (country) lines.push("Country: " + country);
+    if (timing) lines.push("Timing Preference: " + timing);
+    if (program) lines.push("Program: " + program);
+    if (contact) lines.push("Contact: " + contact);
+    lines.push("");
+    lines.push("In case of enquiries, reply to this email or use the WhatsApp / Mail icons on the website.");
+
+    html.push("<p>Thank you for registering in our program.</p>");
+    html.push("<p>We will reach to you with the batch dates.</p>");
+  } else {
+    lines.push("Thank you! Your seat has been reserved.");
+    lines.push("");
+    lines.push("Details we received:");
+    lines.push("Name: " + name);
+    if (age) lines.push("Age: " + age);
+    if (country) lines.push("Country: " + country);
+    if (date) lines.push("Date: " + date);
+    if (timing) lines.push("Timing: " + timing);
+    if (contact) lines.push("Contact: " + contact);
+    if (workshopSessionLink) lines.push("Session Link: " + workshopSessionLink);
+    if (workshopCalendarLink) lines.push("Add to Calendar: " + workshopCalendarLink);
+    lines.push("");
+    lines.push("Please keep this email for reference.");
+
+    html.push("<p>Thank you! Your seat has been reserved.</p>");
+    html.push("<p>Here are your workshop details:</p>");
+  }
+
+  html.push("<ul>");
+  html.push("<li><strong>Name:</strong> " + escapeHtml_(name) + "</li>");
+  if (age) html.push("<li><strong>Age:</strong> " + escapeHtml_(age) + "</li>");
+  if (country) html.push("<li><strong>Country:</strong> " + escapeHtml_(country) + "</li>");
+  if (date && !isProgram) html.push("<li><strong>Date:</strong> " + escapeHtml_(date) + "</li>");
+  if (timing) html.push("<li><strong>Timing:</strong> " + escapeHtml_(timing) + "</li>");
+  if (program) html.push("<li><strong>Program:</strong> " + escapeHtml_(program) + "</li>");
+  if (contact) html.push("<li><strong>Contact:</strong> " + escapeHtml_(contact) + "</li>");
+  html.push("</ul>");
+
+  if (!isProgram && workshopSessionLink) {
+    html.push('<p><strong>Session Link:</strong> <a href="' + workshopSessionLink + '">' + workshopSessionLink + '</a></p>');
+  }
+  if (!isProgram && workshopCalendarLink) {
+    html.push('<p><strong>Add to Calendar:</strong> <a href="' + workshopCalendarLink + '">Add to Calendar</a></p>');
+  }
+  if (isProgram) {
+    html.push("<p>In case of enquiries, reply to this email or use the WhatsApp / Mail icons on the website.</p>");
+  } else {
+    html.push("<p>Please keep this email for reference.</p>");
+  }
 
   MailApp.sendEmail({
     to: to,
     subject: subject,
-    body: lines.join("\n")
+    body: lines.join("\n"),
+    htmlBody: html.join("")
   });
 
   return jsonOut({ ok: true }, 200);
+}
+
+function buildWorkshopCalendarLink_(date, timing, sessionLink) {
+  if (!date || !timing) return "";
+
+  var parsed = parseTimingSelection_(date, timing);
+  if (!parsed) return "";
+
+  var title = "Kraft Academy AI Workshop";
+  var details = sessionLink ? "Join the session here: " + sessionLink : "Kraft Academy AI Workshop";
+  var baseUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE";
+
+  return baseUrl
+    + "&text=" + encodeURIComponent(title)
+    + "&dates=" + parsed.start + "/" + parsed.end
+    + "&ctz=" + encodeURIComponent(parsed.timeZone)
+    + "&details=" + encodeURIComponent(details)
+    + "&location=" + encodeURIComponent(sessionLink || "Online");
+}
+
+function parseTimingSelection_(date, timing) {
+  var match = String(timing).match(/^(.+?)\s-\s(.+?)\s\(([^)]+)\)$/);
+  if (!match) return null;
+
+  var startTime = match[1].trim();
+  var endTime = match[2].trim();
+  var label = match[3].trim();
+  var timeZone = getTimeZoneFromLabel_(label);
+  if (!timeZone) return null;
+
+  var start = buildCalendarDateTime_(date, startTime);
+  var end = buildCalendarDateTime_(date, endTime);
+  if (!start || !end) return null;
+
+  return {
+    start: start,
+    end: end,
+    timeZone: timeZone
+  };
+}
+
+function buildCalendarDateTime_(date, timeValue) {
+  var dateMatch = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  var timeMatch = String(timeValue).match(/^(\d{1,2}):(\d{2})\s(AM|PM)$/i);
+  if (!dateMatch || !timeMatch) return "";
+
+  var year = dateMatch[1];
+  var month = dateMatch[2];
+  var day = dateMatch[3];
+  var hour = Number(timeMatch[1]);
+  var minute = timeMatch[2];
+  var meridiem = timeMatch[3].toUpperCase();
+
+  if (meridiem === "PM" && hour !== 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+
+  return year + month + day + "T" + padNumber_(hour) + minute + "00";
+}
+
+function getTimeZoneFromLabel_(label) {
+  var map = {
+    IST: "Asia/Kolkata",
+    ET: "America/New_York",
+    CT: "America/Chicago",
+    MT: "America/Denver",
+    PT: "America/Los_Angeles",
+    GMT: "Europe/London",
+    CET: "Europe/Berlin",
+    GST: "Asia/Dubai",
+    SGT: "Asia/Singapore",
+    AEST: "Australia/Sydney",
+    ACST: "Australia/Adelaide",
+    AWST: "Australia/Perth",
+    NZDT: "Pacific/Auckland",
+    UTC: "UTC"
+  };
+  return map[label] || "";
+}
+
+function padNumber_(value) {
+  return value < 10 ? "0" + value : String(value);
+}
+
+function escapeHtml_(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function jsonOut(payload, status) {
