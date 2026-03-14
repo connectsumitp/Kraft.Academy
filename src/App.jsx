@@ -150,19 +150,39 @@ export default function App() {
 
         <section className="px-4 pb-16 md:px-6" aria-label="Instructor credentials">
           <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-900">Instructor Credentials</h3>
-            <p className="mt-2 text-sm text-slate-700">Sumit Pandey. Product Manager. 5 Years of Industrial Experience. AI Instructor.</p>
-            <a
-              href="https://linkedin.com/in/sumitpandey1996"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-800 hover:underline"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-                <path d="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19M8.34 17V10.97H6.33V17H8.34M7.34 10.12A1.17 1.17 0 1 0 7.34 7.78A1.17 1.17 0 0 0 7.34 10.12M17.67 17V13.35C17.67 11.4 16.63 10.49 15.24 10.49C14.11 10.49 13.6 11.11 13.32 11.55V10.97H11.31V17H13.32V13.64C13.32 12.75 13.49 11.9 14.6 11.9C15.69 11.9 15.7 12.91 15.7 13.7V17H17.67Z" />
-              </svg>
-              linkedin.com/in/sumitpandey1996
-            </a>
+            <div className="flex flex-col gap-6 md:flex-row md:items-center">
+              <div className="mx-auto w-full max-w-[220px] overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 shadow-sm md:mx-0 md:max-w-[240px]">
+                <div className="aspect-[4/5] w-full">
+                  <img
+                    src="/images/instructor-photo.png"
+                    alt="Instructor Sumit Pandey"
+                    className="h-full w-full object-cover object-top"
+                  />
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xl font-bold text-slate-900">Instructor Credentials</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                  Sumit Pandey. Product Manager. 5 Years of Industrial Experience. AI Instructor.
+                </p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Students learn from an instructor with hands-on product and AI experience, with a focus on practical
+                  learning, real-world tools, and clear guidance for academic growth.
+                </p>
+                <a
+                  href="https://linkedin.com/in/sumitpandey1996"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-800 hover:underline"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
+                    <path d="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19M8.34 17V10.97H6.33V17H8.34M7.34 10.12A1.17 1.17 0 1 0 7.34 7.78A1.17 1.17 0 0 0 7.34 10.12M17.67 17V13.35C17.67 11.4 16.63 10.49 15.24 10.49C14.11 10.49 13.6 11.11 13.32 11.55V10.97H11.31V17H13.32V13.64C13.32 12.75 13.49 11.9 14.6 11.9C15.69 11.9 15.7 12.91 15.7 13.7V17H17.67Z" />
+                  </svg>
+                  linkedin.com/in/sumitpandey1996
+                </a>
+              </div>
+            </div>
           </div>
         </section>
       </main>
