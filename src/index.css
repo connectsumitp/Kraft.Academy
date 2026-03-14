@@ -12,6 +12,7 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -24,6 +25,7 @@ body {
 .phone-input {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   border: 1px solid #cbd5f5;
   border-radius: 0.75rem;
@@ -35,6 +37,7 @@ body {
   border: none;
   outline: none;
   width: 100%;
+  min-width: 0;
   font-size: 0.95rem;
   color: #0f172a;
   background: transparent;
@@ -75,6 +78,27 @@ footer {
   z-index: 1;
 }
 
+.floating-contact-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+}
+
+.bottom-safe-bar {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+input,
+select,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
 @media (max-width: 767px) {
   body::before {
     width: 220px;
@@ -84,6 +108,17 @@ footer {
 
   .phone-input {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .floating-contact-stack {
+    right: 0.75rem;
+    bottom: calc(7.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 1024px) {
+  .phone-input {
     align-items: stretch;
   }
 }

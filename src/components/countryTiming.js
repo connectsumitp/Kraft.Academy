@@ -133,7 +133,7 @@ function buildSlotsForZone(timeZone, selectedDate) {
   candidateIstDates.forEach((istIsoDate) => {
     const { year, month, day } = parseIsoDateParts(istIsoDate);
 
-    for (let hour = 9; hour < 22; hour += 1) {
+    for (let hour = 9; hour < 23; hour += 1) {
       const startUtc = buildIstDateUtc(year, month, day, hour, 0);
       const endUtc = buildIstDateUtc(year, month, day, hour + 1, 0);
       const localDateKey = formatDateKey(startUtc, timeZone);

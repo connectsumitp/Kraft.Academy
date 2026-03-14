@@ -56,14 +56,14 @@ export default function CountdownBar() {
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-amber-200 bg-slate-900/95 px-4 py-3 text-white backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 md:flex-row md:justify-between">
-        <p className="text-center text-sm font-semibold md:text-base">
+    <div className="bottom-safe-bar fixed bottom-0 left-0 right-0 z-50 border-t border-amber-200 bg-slate-900/95 px-4 pt-3 text-white backdrop-blur">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 sm:flex-row sm:justify-between">
+        <p className="max-w-[20rem] text-center text-sm font-semibold leading-snug sm:max-w-none sm:text-left md:text-base">
           Booking window closes in {formatTime(secondsLeft)} based on IST.
         </p>
         <a
           href="#workshop-form"
-          className="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-amber-300 md:text-sm"
+          className="w-full max-w-[18rem] rounded-xl bg-amber-400 px-4 py-2 text-center text-xs font-bold text-slate-900 transition hover:bg-amber-300 sm:w-auto sm:max-w-none md:text-sm"
         >
           Reserve seats for your child
         </a>

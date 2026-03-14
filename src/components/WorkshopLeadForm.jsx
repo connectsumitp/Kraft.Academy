@@ -192,10 +192,10 @@ export default function WorkshopLeadForm() {
           <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
             Includes AI Study Toolkit
           </p>
-          <p className="mt-3 text-xs font-semibold text-emerald-700">AI workshop is available every day.</p>
+          <p className="mt-3 text-xs font-semibold text-emerald-700">AI workshop is available every day between 9 AM and 11 PM IST.</p>
           <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
-          <form className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
+          <form className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
             <div>
               <label htmlFor="workshop-name" className="mb-1 block text-sm font-medium text-slate-800">
                 Name
@@ -212,7 +212,7 @@ export default function WorkshopLeadForm() {
               />
             </div>
 
-            <div className="md:col-span-2 xl:col-span-1">
+            <div className="lg:col-span-2 xl:col-span-1">
               <label htmlFor="workshop-contact" className="mb-1 block text-sm font-medium text-slate-800">
                 Contact
               </label>
@@ -226,14 +226,25 @@ export default function WorkshopLeadForm() {
                 value={form.contact}
                 onChange={(value) => {
                   const next = value || "";
-                  setForm((prev) => ({ ...prev, contact: next }));
+                  const inferred = getCountryFromPhone(next);
+                  setForm((prev) => ({
+                    ...prev,
+                    contact: next,
+                    country: inferred || (next ? prev.country : ""),
+                    timing: !next || (inferred && inferred !== prev.country) ? "" : prev.timing,
+                    date: next ? prev.date : "",
+                  }));
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
                     window.dispatchEvent(new Event("ka-contact-change"));
-                    const inferred = getCountryFromPhone(next);
                     if (inferred && inferred !== form.country) {
-                      setForm((prev) => ({ ...prev, country: inferred, timing: "" }));
                       window.localStorage.setItem("ka_country", inferred);
+                      window.localStorage.removeItem("ka_timing");
+                      window.dispatchEvent(new Event("ka-country-change"));
+                    } else if (!next) {
+                      window.localStorage.removeItem("ka_country");
+                      window.localStorage.removeItem("ka_timing");
+                      window.localStorage.removeItem("ka_date");
                       window.dispatchEvent(new Event("ka-country-change"));
                     }
                   }
@@ -294,7 +305,7 @@ export default function WorkshopLeadForm() {
               </select>
             </div>
 
-            <div className="space-y-2 md:col-span-1">
+            <div className="space-y-2">
               <p className="select-none text-sm font-medium text-slate-800">
                 Preferred Date
               </p>
@@ -311,7 +322,7 @@ export default function WorkshopLeadForm() {
               />
             </div>
 
-            <div className="md:col-span-1">
+            <div>
               <label htmlFor="workshop-timing" className="mb-1 block text-sm font-medium text-slate-800">
                 Timing
               </label>
@@ -322,10 +333,10 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Timing"
                 required
-                disabled={!form.country || !form.date}
+                disabled={!isContactValid || !form.country || !form.date}
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100 md:h-9 md:py-1"
               >
-                <option value="">{form.country && form.date ? "Select Timing" : "Select Date and Contact First"}</option>
+                <option value="">{isContactValid && form.country && form.date ? "Select Timing" : "Select Valid Contact and Date First"}</option>
                 {timingOptions.map((timing) => (
                   <option key={timing} value={timing}>
                     {timing}
@@ -335,7 +346,7 @@ export default function WorkshopLeadForm() {
               <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
             </div>
 
-            <div className="md:col-span-3">
+            <div className="lg:col-span-2 xl:col-span-3">
               <button
                 type="submit"
                 disabled={submitting}
@@ -355,14 +366,14 @@ export default function WorkshopLeadForm() {
 
       {showSuccess && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/55 px-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-xl font-bold text-slate-900">Seat Reserved</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-700">
               Done. Please complete the payment to confirm your seat. We&apos;ll share the session link via email once the
               payment is completed.
             </p>
             <p className="mt-2 text-sm text-slate-700">For enquiry, hit the WhatsApp button or mail us.</p>
-            <div className="mt-5 flex gap-3">
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setShowSuccess(false)}
@@ -374,7 +385,7 @@ export default function WorkshopLeadForm() {
                 href="https://wa.me/919958950167"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800"
+                className="rounded-xl border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-800"
               >
                 Chat on WhatsApp
               </a>
@@ -385,5 +396,6 @@ export default function WorkshopLeadForm() {
     </>
   );
 }
+
 
 

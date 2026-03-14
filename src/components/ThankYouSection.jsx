@@ -8,11 +8,10 @@ export default function ThankYouSection() {
     if (typeof window === "undefined") return;
 
     const updateVisibility = () => {
-      const hasHash = window.location.hash === "#thank-you";
       const lastPayment = window.sessionStorage.getItem("ka_last_payment") || "";
       const hasPayment = Boolean(lastPayment);
       setPaymentType(lastPayment);
-      setVisible(hasHash || hasPayment);
+      setVisible(hasPayment);
     };
 
     updateVisibility();
@@ -30,6 +29,9 @@ export default function ThankYouSection() {
       const section = document.getElementById("thank-you");
       if (section) {
         section.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      if (window.location.hash === "#thank-you") {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
       }
     };
 
@@ -52,7 +54,7 @@ export default function ThankYouSection() {
   const isProgram = paymentType === "program";
 
   return (
-    <section id="thank-you" className="px-4 pb-16 pt-8 md:px-6" aria-labelledby="thank-you-title">
+    <section id="thank-you" className="scroll-mt-28 px-4 pb-24 pt-8 md:px-6 md:pb-16" aria-labelledby="thank-you-title">
       <div className="mx-auto max-w-5xl rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm md:p-8">
         <h2 id="thank-you-title" className="text-2xl font-bold text-emerald-700 md:text-3xl">
           {isProgram ? "Thank you for registering in our program." : "Thank You! Your seat has been reserved."}

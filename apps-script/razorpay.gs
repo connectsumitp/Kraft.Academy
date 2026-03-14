@@ -1,7 +1,7 @@
 // Razorpay Orders + Confirmation Email via Google Apps Script
 // Deploy as Web App (execute as: Me, access: Anyone)
 // Set Script Properties:
-// RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, WORKSHOP_SESSION_LINK
+// RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, WORKSHOP_SESSION_LINK, ADMIN_NOTIFY_EMAIL
 
 function doPost(e) {
   try {
@@ -81,6 +81,7 @@ function sendConfirmationEmail_(body) {
   var program = body.program || "";
   var workshopSessionLink = props.getProperty('WORKSHOP_SESSION_LINK') || "";
   var workshopCalendarLink = buildWorkshopCalendarLink_(date, timing, workshopSessionLink);
+  var adminNotifyEmail = props.getProperty('ADMIN_NOTIFY_EMAIL') || "";
 
   var isProgram = purpose === "program";
   var subject = isProgram ? "Kraft Academy | Program Registration Confirmed" : "Kraft Academy | Workshop Seat Reserved";
@@ -146,6 +147,7 @@ function sendConfirmationEmail_(body) {
 
   MailApp.sendEmail({
     to: to,
+    bcc: adminNotifyEmail || "",
     subject: subject,
     body: lines.join("\n"),
     htmlBody: html.join("")

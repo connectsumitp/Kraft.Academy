@@ -193,7 +193,7 @@ export default function LeadForm() {
           Program Registration
         </h2>
         <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp or Email.</p>
-        <p className="mt-2 text-xs font-semibold text-emerald-700">Programs are available on weekends only.</p>
+        <p className="mt-2 text-xs font-semibold text-emerald-700">Programs are available on weekends only, between 9 AM and 11 PM IST.</p>
         <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
         <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
@@ -227,14 +227,23 @@ export default function LeadForm() {
               value={form.contact}
               onChange={(value) => {
                 const next = value || "";
-                setForm((prev) => ({ ...prev, contact: next }));
+                const inferred = getCountryFromPhone(next);
+                setForm((prev) => ({
+                  ...prev,
+                  contact: next,
+                  country: inferred || (next ? prev.country : ""),
+                  timing: !next || (inferred && inferred !== prev.country) ? "" : prev.timing,
+                }));
                 if (typeof window !== "undefined") {
                   window.localStorage.setItem("ka_contact", next);
                   window.dispatchEvent(new Event("ka-contact-change"));
-                  const inferred = getCountryFromPhone(next);
                   if (inferred && inferred !== form.country) {
-                    setForm((prev) => ({ ...prev, country: inferred, timing: "" }));
                     window.localStorage.setItem("ka_country", inferred);
+                    window.localStorage.removeItem("ka_timing");
+                    window.dispatchEvent(new Event("ka-country-change"));
+                  } else if (!next) {
+                    window.localStorage.removeItem("ka_country");
+                    window.localStorage.removeItem("ka_timing");
                     window.dispatchEvent(new Event("ka-country-change"));
                   }
                 }
@@ -328,11 +337,11 @@ export default function LeadForm() {
               onChange={onChange}
               aria-label="Select timing"
               required
-              disabled={!form.country}
+              disabled={!isContactValid || !form.country}
               className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
               <option value="">
-                {form.country ? "Select Timing" : "Select Contact First"}
+                {isContactValid && form.country ? "Select Timing" : "Select Valid Contact First"}
               </option>
               {timingOptions.map((timing) => (
                 <option key={timing} value={timing}>
@@ -361,5 +370,6 @@ export default function LeadForm() {
     </section>
   );
 }
+
 
 
