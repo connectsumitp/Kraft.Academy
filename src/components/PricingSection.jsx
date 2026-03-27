@@ -1,10 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { isValidPhoneNumber } from "react-phone-number-input";
 
-const INDIA_GROUP_DEMO_AMOUNT_INR = 99;
-const INDIA_PREFERRED_DEMO_AMOUNT_INR = 399;
-const GLOBAL_PREFERRED_DEMO_AMOUNT_INR = 1000;
-
 const fallbackRates = {
   INR: 1,
   USD: 0.012,
@@ -315,9 +311,13 @@ export default function PricingSection() {
     }
   }, [contactRegion]);
 
+  const workshopGroupInr = Number(import.meta.env.VITE_WORKSHOP_GROUP_INR || 99);
+  const workshopIndiaOneToOneInr = Number(import.meta.env.VITE_WORKSHOP_11_INDIA_INR || 499);
+  const workshopGlobalInr = Number(import.meta.env.VITE_WORKSHOP_GLOBAL_INR || 1000);
+
   const pricingInfo = useMemo(() => {
     if (inferredRegion === "IN") {
-      const indiaWorkshopAmount = demoSlot ? INDIA_GROUP_DEMO_AMOUNT_INR : INDIA_PREFERRED_DEMO_AMOUNT_INR;
+      const indiaWorkshopAmount = demoSlot ? workshopGroupInr : workshopIndiaOneToOneInr;
       return {
         label: formatMoney(indiaWorkshopAmount, "INR"),
         amount: indiaWorkshopAmount,
@@ -326,7 +326,7 @@ export default function PricingSection() {
     }
 
     const fx = rates[displayCurrency] || fallbackRates[displayCurrency] || 1;
-    const converted = GLOBAL_PREFERRED_DEMO_AMOUNT_INR * fx;
+    const converted = workshopGlobalInr * fx;
     const rounded = getConvertedAmount(converted);
 
     return {
@@ -334,9 +334,9 @@ export default function PricingSection() {
       amount: rounded,
       currency: displayCurrency,
       raw: converted,
-      baseInr: GLOBAL_PREFERRED_DEMO_AMOUNT_INR,
+      baseInr: workshopGlobalInr,
     };
-  }, [inferredRegion, displayCurrency, rates]);
+  }, [inferredRegion, displayCurrency, rates, demoSlot, workshopGroupInr, workshopIndiaOneToOneInr, workshopGlobalInr]);
 
   const programInr = Number(import.meta.env.VITE_PROGRAM_AMOUNT_INR || 0);
   const programGlobalInr = Number(import.meta.env.VITE_PROGRAM_GLOBAL_INR || 0);
