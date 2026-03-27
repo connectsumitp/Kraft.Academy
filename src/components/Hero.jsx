@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+ï»¿import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import BrandName from "./BrandName.jsx";
 import kid from "../assets/kid.png";
@@ -303,7 +303,7 @@ export default function Hero() {
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/80" />
                   <span className="inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-700 shadow-sm sm:text-[11px]">
-                    {slot.schedule.dayLabel} • {slot.schedule.longDate}
+                    {slot.schedule.dayLabel} - {slot.schedule.longDate}
                   </span>
                   <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                     <div>
