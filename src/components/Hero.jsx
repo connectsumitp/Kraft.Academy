@@ -277,12 +277,23 @@ export default function Hero() {
               </p>
             )}
 
-            <p className="mt-4 text-sm text-slate-700">
-              Want your preferred timing for demo classes 1:1?{" "}
-              <a href="#workshop-form" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
-                This is already available in the demo class booking section.
+            <div className="mt-4 flex flex-col gap-2 text-sm text-slate-700">
+              <p>
+                Want your preferred timing for demo classes 1:1?{" "}
+                <a href="#workshop-form" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
+                  This is already available in the demo class booking section.
+                </a>
+              </p>
+              <a
+                href="#workshop-form"
+                className="inline-flex w-fit animate-pulseSoft items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 font-semibold text-slate-900 shadow-sm shadow-amber-200/70 transition hover:bg-amber-200"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm6.93 9h-3.27a15.72 15.72 0 0 0-1.18-4.57A8.05 8.05 0 0 1 18.93 11ZM12 4.07c.88 1.09 1.89 3.43 2.27 6.93H9.73C10.11 7.5 11.12 5.16 12 4.07ZM4.48 13h3.28A15.72 15.72 0 0 0 8.93 17.57 8.05 8.05 0 0 1 4.48 13Zm3.28-2H4.48a8.05 8.05 0 0 1 4.45-4.57A15.72 15.72 0 0 0 7.76 11Zm1.97 0a13.79 13.79 0 0 1 2.27-6.53A13.79 13.79 0 0 1 14.27 11Zm4.54 2A13.79 13.79 0 0 1 12 19.53 13.79 13.79 0 0 1 9.73 13Zm1.39 4.57A15.72 15.72 0 0 0 16.24 13h3.28a8.05 8.05 0 0 1-4.45 4.57Z" />
+                </svg>
+                Global students? We have you covered.
               </a>
-            </p>
+            </div>
           </div>
         </div>
 

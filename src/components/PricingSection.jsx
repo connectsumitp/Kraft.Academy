@@ -437,36 +437,6 @@ export default function PricingSection() {
           Simple pricing for workshop access and full programs.
         </p>
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900">AI Study Skills Workshop</h3>
-            <p className="mt-2 text-sm text-slate-700">Includes AI Study Toolkit and live session.</p>
-            <div className="mt-4 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
-              Limited seats
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900">AI Future Skills</h3>
-            <p className="mt-2 text-sm text-slate-700">4-week program with real-world AI projects.</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700">
-              <li>AI foundations</li>
-              <li>Productivity tools</li>
-              <li>Live projects</li>
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900">Coding Bootcamp</h3>
-            <p className="mt-2 text-sm text-slate-700">2-month coding program for Ages 11-18.</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700">
-              <li>Logic building</li>
-              <li>Mini projects</li>
-              <li>Competitive mindset</li>
-            </ul>
-          </div>
-        </div>
-
         <div
           id="razorpay-checkout"
           className={`mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition md:p-6 ${
