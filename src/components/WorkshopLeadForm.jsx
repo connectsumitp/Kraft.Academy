@@ -140,19 +140,12 @@ export default function WorkshopLeadForm() {
         payment_status: "",
       };
 
-      await fetch(scriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: new URLSearchParams(payload).toString(),
-      });
-
       if (typeof window !== "undefined" && typeof window.fbq === "function") {
         window.fbq("track", "Lead", { lead_type: "workshop", source: "website_workshop_top_form" });
       }
       if (typeof window !== "undefined") {
+        window.localStorage.removeItem("ka_demo_slot");
+        window.dispatchEvent(new Event("ka-demo-slot-change"));
         const target = document.getElementById("razorpay-checkout");
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -163,6 +156,17 @@ export default function WorkshopLeadForm() {
         }
         setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
       }
+
+      fetch(scriptUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body: new URLSearchParams(payload).toString(),
+      }).catch(() => {
+        setSubmitMessage("Done. Please complete the payment to confirm your seat. We could not confirm lead submission yet, but you can continue with payment below.");
+      });
 
       setForm((prev) => ({
         name: "",

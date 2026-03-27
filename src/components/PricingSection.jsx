@@ -134,6 +134,16 @@ function getLeadDetails() {
   };
 }
 
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(text);
+  }
+}
+
 async function sendConfirmationEmail(emailScriptUrl, purpose) {
   const lead = getLeadDetails();
   await fetch(emailScriptUrl, {
@@ -371,7 +381,7 @@ export default function PricingSection() {
           body: JSON.stringify({ orderId }),
         });
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
         if (!response.ok || !data?.ok) {
           throw new Error(data?.error || "PayPal payment could not be verified.");
         }
@@ -461,12 +471,10 @@ export default function PricingSection() {
           body: JSON.stringify(payload),
         });
 
+        const data = await readJsonResponse(response);
         if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || "Order request failed");
+          throw new Error(data?.error || "Order request failed");
         }
-
-        const data = await response.json();
         if (!data?.ok) {
           throw new Error(data?.error || "Order creation failed");
         }
@@ -512,7 +520,7 @@ export default function PricingSection() {
         }),
       });
 
-      const paypalData = await paypalResponse.json();
+      const paypalData = await readJsonResponse(paypalResponse);
       if (!paypalResponse.ok || !paypalData?.ok || !paypalData?.approveUrl) {
         throw new Error(paypalData?.error || "PayPal payment could not be started.");
       }
