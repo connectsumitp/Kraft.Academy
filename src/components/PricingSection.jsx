@@ -134,6 +134,26 @@ function getLeadDetails() {
   };
 }
 
+async function sendConfirmationEmail(emailScriptUrl, purpose) {
+  const lead = getLeadDetails();
+  await fetch(emailScriptUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "send_confirmation",
+      purpose,
+      name: lead.name,
+      email: lead.email,
+      contact: lead.contact,
+      age: lead.age,
+      country: lead.country,
+      date: lead.date,
+      timing: lead.timing,
+      program: lead.program,
+    }),
+  });
+}
+
 function getCountryFromPhone(value) {
   if (!value || typeof value !== "string") return "";
   const match = dialCodeMap.find((entry) => value.startsWith(entry.code));
@@ -158,6 +178,7 @@ export default function PricingSection() {
   const [checkoutStatus, setCheckoutStatus] = useState("");
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [highlightedCard, setHighlightedCard] = useState("");
+  const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("ka_country") : "";
@@ -187,6 +208,12 @@ export default function PricingSection() {
     const onContactChange = () => {
       const updatedContact = window.localStorage.getItem("ka_contact") || "";
       setContact(updatedContact);
+      const inferred = getCountryFromPhone(updatedContact);
+      if (inferred) {
+        setCountry(inferred);
+        setCurrency(getCurrencyForCountry(inferred));
+        setPaymentRegion(inferred === "IN" ? "IN" : "GLOBAL");
+      }
     };
 
     const onDemoSlotChange = () => {
@@ -253,6 +280,7 @@ export default function PricingSection() {
   const contactCountry = useMemo(() => (isContactValid ? getCountryFromPhone(contact) : ""), [contact, isContactValid]);
   const contactRegion = useMemo(() => getRegionFromContact(contact), [contact]);
   const inferredRegion = (isContactValid ? contactRegion : "") || (country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion);
+  const effectiveCountry = contactCountry || country;
   const displayCurrency = useMemo(() => {
     if (inferredRegion === "IN") return "INR";
     if (contactCountry && contactCountry !== "IN") return getCurrencyForCountry(contactCountry);
@@ -319,6 +347,70 @@ export default function PricingSection() {
   const orderScriptUrl = import.meta.env.VITE_RAZORPAY_ORDER_SCRIPT_URL || "/api/razorpay-order";
   const emailScriptUrl = import.meta.env.VITE_RAZORPAY_EMAIL_SCRIPT_URL || orderScriptUrl;
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    const isPayPalReturn = url.searchParams.get("paypal_return") === "1";
+    const orderId = url.searchParams.get("token");
+    const purpose = url.searchParams.get("paypal_purpose") || "workshop";
+
+    if (!isPayPalReturn || !orderId || isPayPalProcessing) {
+      return;
+    }
+
+    let active = true;
+
+    const capturePayPalOrder = async () => {
+      setIsPayPalProcessing(true);
+      setCheckoutStatus("Finalizing your PayPal payment...");
+      try {
+        const response = await fetch("/api/paypal-capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data?.ok) {
+          throw new Error(data?.error || "PayPal payment could not be verified.");
+        }
+
+        if (!active) return;
+
+        window.sessionStorage.setItem("ka_last_payment", purpose);
+        window.location.hash = "#thank-you";
+
+        try {
+          await sendConfirmationEmail(emailScriptUrl, purpose);
+        } catch (_) {
+          // ignore email failures for now
+        }
+
+        url.searchParams.delete("paypal_return");
+        url.searchParams.delete("paypal_purpose");
+        url.searchParams.delete("token");
+        url.searchParams.delete("PayerID");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash || "#thank-you"}`);
+
+        setCheckoutStatus("Payment successful. We will contact you shortly.");
+      } catch (error) {
+        if (!active) return;
+        setCheckoutStatus(error?.message || "PayPal payment could not be completed.");
+      } finally {
+        if (active) {
+          setIsPayPalProcessing(false);
+        }
+      }
+    };
+
+    capturePayPalOrder();
+
+    return () => {
+      active = false;
+    };
+  }, [emailScriptUrl, isPayPalProcessing]);
+
   const handleCheckout = async (purpose) => {
     setCheckoutStatus("");
     if (!hasPaymentAccess) {
@@ -340,88 +432,92 @@ export default function PricingSection() {
       return;
     }
 
-    const ok = await loadRazorpayScript();
-    if (!ok) {
-      setCheckoutStatus("Razorpay SDK failed to load. Check your connection and try again.");
-      return;
-    }
-
-    const factor = getSubunitFactor(selected.currency);
-    const amountSubunits = Math.round(selected.amount * factor);
-
     try {
-      const payload = {
-        action: "create_order",
-        amount: amountSubunits,
-        currency: selected.currency,
-        purpose,
-        receipt: `ka_${purpose}_${Date.now()}`,
-        notes: {
-          country: country || "",
-          payment_region: inferredRegion,
-          demo_slot: demoSlot || "",
-        },
-      };
+      if (inferredRegion === "IN") {
+        const ok = await loadRazorpayScript();
+        if (!ok) {
+          setCheckoutStatus("Razorpay SDK failed to load. Check your connection and try again.");
+          return;
+        }
 
-      const response = await fetch(orderScriptUrl, {
+        const factor = getSubunitFactor(selected.currency);
+        const amountSubunits = Math.round(selected.amount * factor);
+        const payload = {
+          action: "create_order",
+          amount: amountSubunits,
+          currency: selected.currency,
+          purpose,
+          receipt: `ka_${purpose}_${Date.now()}`,
+          notes: {
+            country: country || "",
+            payment_region: inferredRegion,
+            demo_slot: demoSlot || "",
+          },
+        };
+
+        const response = await fetch(orderScriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Order request failed");
+        }
+
+        const data = await response.json();
+        if (!data?.ok) {
+          throw new Error(data?.error || "Order creation failed");
+        }
+
+        const prefill = getPrefill();
+
+        const rzp = new window.Razorpay({
+          key: data.key,
+          amount: data.amount,
+          currency: data.currency,
+          name: "Kraft Academy",
+          description: purpose === "program" ? "Program Enrollment" : "AI Study Skills Workshop",
+          order_id: data.order_id,
+          prefill,
+          handler: async function () {
+            if (typeof window !== "undefined") {
+              window.sessionStorage.setItem("ka_last_payment", purpose);
+              window.location.hash = "#thank-you";
+            }
+            try {
+              await sendConfirmationEmail(emailScriptUrl, purpose);
+            } catch (_) {
+              // ignore email failures for now
+            }
+            setCheckoutStatus("Payment successful. We will contact you shortly.");
+          },
+          notes: payload.notes,
+          theme: { color: "#1E293B" },
+        });
+
+        rzp.open();
+        return;
+      }
+
+      const paypalResponse = await fetch("/api/paypal-order", {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: selected.amount,
+          currency: selected.currency,
+          purpose,
+          siteUrl: typeof window !== "undefined" ? window.location.origin : "",
+        }),
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || "Order request failed");
+      const paypalData = await paypalResponse.json();
+      if (!paypalResponse.ok || !paypalData?.ok || !paypalData?.approveUrl) {
+        throw new Error(paypalData?.error || "PayPal payment could not be started.");
       }
 
-      const data = await response.json();
-      if (!data?.ok) {
-        throw new Error(data?.error || "Order creation failed");
-      }
-
-      const prefill = getPrefill();
-
-      const rzp = new window.Razorpay({
-        key: data.key,
-        amount: data.amount,
-        currency: data.currency,
-        name: "Kraft Academy",
-        description: purpose === "program" ? "Program Enrollment" : "AI Study Skills Workshop",
-        order_id: data.order_id,
-        prefill,
-        handler: async function () {
-          if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("ka_last_payment", purpose);
-            window.location.hash = "#thank-you";
-          }
-          try {
-            const lead = getLeadDetails();
-            await fetch(emailScriptUrl, {
-              method: "POST",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({
-                action: "send_confirmation",
-                purpose,
-                name: lead.name,
-                email: lead.email,
-                contact: lead.contact,
-                age: lead.age,
-                country: lead.country,
-                date: lead.date,
-                timing: lead.timing,
-                program: lead.program,
-              }),
-            });
-          } catch (_) {
-            // ignore email failures for now
-          }
-          setCheckoutStatus("Payment successful. We will contact you shortly.");
-        },
-        notes: payload.notes,
-        theme: { color: "#1E293B" },
-      });
-
-      rzp.open();
+      window.location.href = paypalData.approveUrl;
     } catch (err) {
       setCheckoutStatus(err?.message || "Payment could not be started.");
     }
@@ -445,8 +541,10 @@ export default function PricingSection() {
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Razorpay Checkout</h3>
-              <p className="mt-1 text-sm text-slate-700">Pay securely via UPI, Debit Card, or Credit Card.</p>
+              <h3 className="text-lg font-bold text-slate-900">{inferredRegion === "IN" ? "Razorpay Checkout" : "PayPal Checkout"}</h3>
+              <p className="mt-1 text-sm text-slate-700">
+                {inferredRegion === "IN" ? "Pay securely via UPI, Debit Card, or Credit Card." : "Pay securely via PayPal or international cards."}
+              </p>
               <div className="mt-4 inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                 {rateSource === "live" ? "Live FX rates" : "Estimated FX rates"}
               </div>
@@ -467,7 +565,7 @@ export default function PricingSection() {
               </p>
               {hasPaymentAccess && inferredRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500 md:text-right">
-                  Country detected: {country || "Not selected"} • Currency: {displayCurrency}
+                  Country detected: {effectiveCountry || "Not selected"} • Currency: {displayCurrency}
                 </p>
               )}
               {demoSlot && !hasPaymentAccess && (
@@ -498,7 +596,7 @@ export default function PricingSection() {
                     <path d="M5 4h10a4 4 0 0 1 0 8H9v8H5V4Zm4 4h6a2 2 0 1 0 0-4H9v4Z" />
                   </svg>
                 </span>
-                Pay Workshop via Razorpay
+                {inferredRegion === "IN" ? "Pay Workshop via Razorpay" : "Pay Workshop via PayPal"}
               </button>
             </div>
 
@@ -521,7 +619,7 @@ export default function PricingSection() {
                     <path d="M5 4h10a4 4 0 0 1 0 8H9v8H5V4Zm4 4h6a2 2 0 1 0 0-4H9v4Z" />
                   </svg>
                 </span>
-                Pay Program via Razorpay
+                {inferredRegion === "IN" ? "Pay Program via Razorpay" : "Pay Program via PayPal"}
               </button>
             </div>
           </div>
