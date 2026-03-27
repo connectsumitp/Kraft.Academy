@@ -1,8 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { isValidPhoneNumber } from "react-phone-number-input";
 
-const INDIA_AMOUNT_INR = 99;
-const GLOBAL_AMOUNT_INR = 1000;
+const INDIA_GROUP_DEMO_AMOUNT_INR = 99;
+const INDIA_PREFERRED_DEMO_AMOUNT_INR = 499;
+const GLOBAL_PREFERRED_DEMO_AMOUNT_INR = 1000;
 
 const fallbackRates = {
   INR: 1,
@@ -307,15 +308,16 @@ export default function PricingSection() {
 
   const pricingInfo = useMemo(() => {
     if (inferredRegion === "IN") {
+      const indiaWorkshopAmount = demoSlot ? INDIA_GROUP_DEMO_AMOUNT_INR : INDIA_PREFERRED_DEMO_AMOUNT_INR;
       return {
-        label: formatMoney(INDIA_AMOUNT_INR, "INR"),
-        amount: INDIA_AMOUNT_INR,
+        label: formatMoney(indiaWorkshopAmount, "INR"),
+        amount: indiaWorkshopAmount,
         currency: "INR",
       };
     }
 
     const fx = rates[displayCurrency] || fallbackRates[displayCurrency] || 1;
-    const converted = GLOBAL_AMOUNT_INR * fx;
+    const converted = GLOBAL_PREFERRED_DEMO_AMOUNT_INR * fx;
     const rounded = getConvertedAmount(converted);
 
     return {
@@ -323,7 +325,7 @@ export default function PricingSection() {
       amount: rounded,
       currency: displayCurrency,
       raw: converted,
-      baseInr: GLOBAL_AMOUNT_INR,
+      baseInr: GLOBAL_PREFERRED_DEMO_AMOUNT_INR,
     };
   }, [inferredRegion, displayCurrency, rates]);
 
@@ -535,10 +537,10 @@ export default function PricingSection() {
     <section id="pricing" className="px-4 pb-12 pt-6 md:px-6" aria-labelledby="pricing-title">
       <div className="mx-auto max-w-6xl">
         <h2 id="pricing-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-          Pricing
+          Complete Your Booking
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-700 md:text-base">
-          Simple pricing for workshop access and full programs.
+          Enter your details above and continue here to see the payment amount available for your location.
         </p>
 
         <div
@@ -564,7 +566,7 @@ export default function PricingSection() {
             </div>
             <div className="flex flex-col gap-3 md:max-w-[22rem] md:items-end">
               <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
-                {hasPaymentAccess ? `Showing ${inferredRegion === "IN" ? "India" : "Global"} pricing only` : "Pricing unlocks after contact verification"}
+                {hasPaymentAccess ? `Showing ${inferredRegion === "IN" ? "India" : "Global"} checkout only` : "Checkout unlocks after contact verification"}
               </div>
               <p className="text-xs leading-relaxed text-slate-500 md:text-right">
                 {contactRegion
