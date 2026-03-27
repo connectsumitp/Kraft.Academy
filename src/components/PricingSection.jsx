@@ -150,16 +150,19 @@ function getRegionFromContact(contact) {
 export default function PricingSection() {
   const [country, setCountry] = useState("");
   const [contact, setContact] = useState("");
+  const [demoSlot, setDemoSlot] = useState("");
   const [paymentRegion, setPaymentRegion] = useState("GLOBAL");
   const [currency, setCurrency] = useState("USD");
   const [rates, setRates] = useState(fallbackRates);
   const [rateSource, setRateSource] = useState("fallback");
   const [checkoutStatus, setCheckoutStatus] = useState("");
   const [isHighlighted, setIsHighlighted] = useState(false);
+  const [highlightedCard, setHighlightedCard] = useState("");
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("ka_country") : "";
     const storedContact = typeof window !== "undefined" ? window.localStorage.getItem("ka_contact") : "";
+    const storedDemoSlot = typeof window !== "undefined" ? window.localStorage.getItem("ka_demo_slot") : "";
     if (stored) {
       setCountry(stored);
       setCurrency(getCurrencyForCountry(stored));
@@ -167,6 +170,9 @@ export default function PricingSection() {
     }
     if (storedContact) {
       setContact(storedContact);
+    }
+    if (storedDemoSlot) {
+      setDemoSlot(storedDemoSlot);
     }
 
     const onCountryChange = () => {
@@ -183,11 +189,18 @@ export default function PricingSection() {
       setContact(updatedContact);
     };
 
+    const onDemoSlotChange = () => {
+      const updatedDemoSlot = window.localStorage.getItem("ka_demo_slot") || "";
+      setDemoSlot(updatedDemoSlot);
+    };
+
     window.addEventListener("ka-country-change", onCountryChange);
     window.addEventListener("ka-contact-change", onContactChange);
+    window.addEventListener("ka-demo-slot-change", onDemoSlotChange);
     return () => {
       window.removeEventListener("ka-country-change", onCountryChange);
       window.removeEventListener("ka-contact-change", onContactChange);
+      window.removeEventListener("ka-demo-slot-change", onDemoSlotChange);
     };
   }, []);
 
@@ -196,12 +209,19 @@ export default function PricingSection() {
       setIsHighlighted(true);
       setTimeout(() => setIsHighlighted(false), 2000);
     };
+    const onCardHighlight = (event) => {
+      const purpose = event?.detail?.purpose || "";
+      setHighlightedCard(purpose);
+      window.setTimeout(() => setHighlightedCard(""), 2200);
+    };
     if (typeof window !== "undefined") {
       window.addEventListener("ka-razorpay-focus", onHighlight);
+      window.addEventListener("ka-razorpay-card-focus", onCardHighlight);
     }
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("ka-razorpay-focus", onHighlight);
+        window.removeEventListener("ka-razorpay-card-focus", onCardHighlight);
       }
     };
   }, []);
@@ -302,7 +322,9 @@ export default function PricingSection() {
   const handleCheckout = async (purpose) => {
     setCheckoutStatus("");
     if (!hasPaymentAccess) {
-      setCheckoutStatus("Enter a valid contact number to unlock the correct payment option for your region.");
+      setCheckoutStatus(demoSlot
+        ? "Selected demo slot is India-only. Add a valid Indian contact number in the booking form to unlock the Rs 99 payment."
+        : "Enter a valid contact number to unlock the correct payment option for your region.");
       return;
     }
     if (!orderScriptUrl) {
@@ -337,6 +359,7 @@ export default function PricingSection() {
         notes: {
           country: country || "",
           payment_region: inferredRegion,
+          demo_slot: demoSlot || "",
         },
       };
 
@@ -414,7 +437,7 @@ export default function PricingSection() {
           Simple pricing for workshop access and full programs.
         </p>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
+        <div className="mt-6 grid gap-5 lg:grid-cols-3">
           <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold text-slate-900">AI Study Skills Workshop</h3>
             <p className="mt-2 text-sm text-slate-700">Includes AI Study Toolkit and live session.</p>
@@ -435,7 +458,7 @@ export default function PricingSection() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold text-slate-900">Coding Bootcamp</h3>
-            <p className="mt-2 text-sm text-slate-700">2-month coding program for Ages 11–18.</p>
+            <p className="mt-2 text-sm text-slate-700">2-month coding program for Ages 11-18.</p>
             <ul className="mt-3 space-y-2 text-sm text-slate-700">
               <li>Logic building</li>
               <li>Mini projects</li>
@@ -446,7 +469,7 @@ export default function PricingSection() {
 
         <div
           id="razorpay-checkout"
-          className={`mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition ${
+          className={`mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition md:p-6 ${
             isHighlighted ? "ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : ""
           }`}
         >
@@ -454,29 +477,39 @@ export default function PricingSection() {
             <div>
               <h3 className="text-lg font-bold text-slate-900">Razorpay Checkout</h3>
               <p className="mt-1 text-sm text-slate-700">Pay securely via UPI, Debit Card, or Credit Card.</p>
-              <div className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+              <div className="mt-4 inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                 {rateSource === "live" ? "Live FX rates" : "Estimated FX rates"}
               </div>
+              {demoSlot && (
+                <div className="mt-3 inline-flex max-w-full animate-pulseSoft rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
+                  Selected demo slot: {demoSlot}
+                </div>
+              )}
             </div>
-            <div className="flex flex-col gap-3 md:items-end">
+            <div className="flex flex-col gap-3 md:max-w-[22rem] md:items-end">
               <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
                 {hasPaymentAccess ? `Showing ${inferredRegion === "IN" ? "India" : "Global"} pricing only` : "Pricing unlocks after contact verification"}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs leading-relaxed text-slate-500 md:text-right">
                 {contactRegion
                   ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on contact number.`
                   : "Enter a valid Indian number to see India pricing, or a valid international number to see Global pricing."}
               </p>
               {hasPaymentAccess && inferredRegion === "GLOBAL" && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 md:text-right">
                   Country detected: {country || "Not selected"} • Currency: {displayCurrency}
+                </p>
+              )}
+              {demoSlot && !hasPaymentAccess && (
+                <p className="text-xs font-medium leading-relaxed text-amber-700 md:text-right">
+                  Demo slots are for India only. Add a valid Indian contact number to unlock the Rs 99 payment.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            <div className={`rounded-2xl border bg-slate-50 p-4 transition ${highlightedCard === "workshop" ? "animate-pulseSoft border-amber-300 ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : "border-slate-200"}`}>
               <p className="text-sm font-semibold text-slate-800">Workshop Payment</p>
               <p className="mt-1 text-sm text-slate-700">{hasPaymentAccess ? `Pay ${pricingInfo.label}` : "Enter a valid contact number to view your workshop price"}</p>
               {hasPaymentAccess && inferredRegion === "GLOBAL" && (
@@ -488,7 +521,7 @@ export default function PricingSection() {
                 type="button"
                 onClick={() => handleCheckout("workshop")}
                 disabled={!hasPaymentAccess}
-                className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${highlightedCard === "workshop" ? "animate-pulseSoft" : ""}`}
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
@@ -499,7 +532,7 @@ export default function PricingSection() {
               </button>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className={`rounded-2xl border bg-slate-50 p-4 transition ${highlightedCard === "program" ? "animate-pulseSoft border-amber-300 ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : "border-slate-200"}`}>
               <p className="text-sm font-semibold text-slate-800">Program Payment</p>
               <p className="mt-1 text-sm text-slate-700">{hasPaymentAccess ? `Pay ${programPricing.label}` : "Enter a valid contact number to view your program price"}</p>
               {hasPaymentAccess && inferredRegion === "GLOBAL" && programPricing.baseInr && (
@@ -511,7 +544,7 @@ export default function PricingSection() {
                 type="button"
                 onClick={() => handleCheckout("program")}
                 disabled={!hasPaymentAccess}
-                className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${highlightedCard === "program" ? "animate-pulseSoft" : ""}`}
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
@@ -541,5 +574,4 @@ export default function PricingSection() {
     </section>
   );
 }
-
 

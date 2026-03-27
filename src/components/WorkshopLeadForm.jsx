@@ -157,6 +157,7 @@ export default function WorkshopLeadForm() {
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
           window.dispatchEvent(new Event("ka-razorpay-focus"));
+          window.dispatchEvent(new CustomEvent("ka-razorpay-card-focus", { detail: { purpose: "workshop" } }));
         } else {
           window.location.hash = "#razorpay-checkout";
         }
@@ -186,13 +187,13 @@ export default function WorkshopLeadForm() {
       <section id="workshop-form" className="px-4 pb-10 pt-8 md:px-6" aria-labelledby="workshop-title">
         <div className="mx-auto max-w-6xl rounded-2xl border border-amber-200 bg-white p-6 shadow-sm md:p-8">
           <h2 id="workshop-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-            Reserve seats for your child
+            Preferred Timing Booking
           </h2>
-          <p className="mt-2 text-sm text-slate-700">AI Study Skills Workshop for Students (Ages 11 to 18).</p>
+          <p className="mt-2 text-sm text-slate-700">For 1:1 demo class bookings or global users who want a preferred timing.</p>
           <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
             Includes AI Study Toolkit
           </p>
-          <p className="mt-3 text-xs font-semibold text-emerald-700">AI workshop is available every day between 9 AM and 11 PM IST.</p>
+          <p className="mt-3 text-xs font-semibold text-emerald-700">Preferred timing bookings are available every day between 9 AM and 11 PM IST.</p>
           <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
           <form className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
@@ -352,7 +353,7 @@ export default function WorkshopLeadForm() {
                 disabled={submitting}
                 className="rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {submitting ? "Submitting..." : "Reserve seats for your child"}
+                {submitting ? "Submitting..." : "Book Preferred Timing"}
               </button>
               {submitMessage && (
                 <p className="mt-2 text-sm font-medium text-slate-700" role="status" aria-live="polite">

@@ -83,6 +83,7 @@ footer {
   right: 1rem;
   bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
   z-index: 60;
+  max-width: calc(100vw - 1.5rem);
 }
 
 .bottom-safe-bar {
@@ -114,6 +115,14 @@ section[id] {
   .floating-contact-stack {
     right: 0.75rem;
     bottom: calc(7.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 1024px) {
+  .floating-contact-stack > span {
+    max-width: 8.5rem;
+    text-align: center;
+    line-height: 1.2;
   }
 }
 

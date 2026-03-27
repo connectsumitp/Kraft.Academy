@@ -89,8 +89,8 @@ export default function App() {
     <div id="top" className="min-h-screen bg-brand-50 pb-32 text-slate-900 md:pb-28">
       <Header />
       <main>
-        <WorkshopLeadForm />
         <Hero />
+        <WorkshopLeadForm />
 
         <section id="programs" className="px-4 py-10 md:px-6" aria-labelledby="programs-title">
           <div className="mx-auto max-w-6xl">

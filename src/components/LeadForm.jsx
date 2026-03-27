@@ -161,6 +161,7 @@ export default function LeadForm() {
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
           window.dispatchEvent(new Event("ka-razorpay-focus"));
+          window.dispatchEvent(new CustomEvent("ka-razorpay-card-focus", { detail: { purpose: "program" } }));
         } else {
           window.location.hash = "#razorpay-checkout";
         }
