@@ -1,7 +1,8 @@
 ﻿export default function ProgramCard({ title, details, features }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-xl font-bold text-slate-900">{title}</h3>
+    <article className="editorial-panel reveal-on-scroll rounded-[2rem] p-6">
+      <span className="section-kicker !mb-0">Signature track</span>
+      <h3 className="mt-3 text-xl font-bold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm font-medium text-slate-700">{details}</p>
       <ul className="mt-4 space-y-2">
         {features.map((feature) => (

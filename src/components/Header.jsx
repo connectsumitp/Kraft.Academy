@@ -2,7 +2,7 @@
 import BrandName from "./BrandName.jsx";
 
 const navItems = [
-  { label: "Workshop", href: "#workshop-form" },
+  { label: "Workshop", href: "#india-demo-classes" },
   { label: "Programs", href: "#registration" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQs", href: "#faqs" },
@@ -10,6 +10,11 @@ const navItems = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const handleReserveClick = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("ka-demo-focus"));
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-slate-800/95 backdrop-blur supports-[backdrop-filter]:bg-slate-800/80">
@@ -44,7 +49,8 @@ export default function Header() {
           ))}
           <li>
             <a
-              href="#workshop-form"
+              href="#india-demo-classes"
+              onClick={handleReserveClick}
               className="inline-flex max-w-[9rem] items-center justify-center text-center leading-tight animate-bounce rounded-xl bg-amber-400 px-2.5 py-2 text-[11px] font-extrabold text-slate-900 shadow-lg shadow-amber-300/40 ring-2 ring-amber-200 transition hover:bg-amber-300 lg:max-w-none lg:px-4 lg:text-sm"
             >
               Reserve seats for your child
@@ -69,9 +75,12 @@ export default function Header() {
             ))}
             <li>
               <a
-                href="#workshop-form"
+                href="#india-demo-classes"
                 className="mt-1 block animate-pulse rounded-xl bg-amber-400 px-3 py-2 text-sm font-extrabold text-slate-900"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  handleReserveClick();
+                  setOpen(false);
+                }}
               >
                 Reserve seats for your child
               </a>

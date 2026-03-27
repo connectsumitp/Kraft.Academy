@@ -2,7 +2,7 @@
 import { isValidPhoneNumber } from "react-phone-number-input";
 
 const INDIA_GROUP_DEMO_AMOUNT_INR = 99;
-const INDIA_PREFERRED_DEMO_AMOUNT_INR = 499;
+const INDIA_PREFERRED_DEMO_AMOUNT_INR = 399;
 const GLOBAL_PREFERRED_DEMO_AMOUNT_INR = 1000;
 
 const fallbackRates = {
@@ -182,6 +182,7 @@ export default function PricingSection() {
   const [country, setCountry] = useState("");
   const [contact, setContact] = useState("");
   const [demoSlot, setDemoSlot] = useState("");
+  const [checkoutReady, setCheckoutReady] = useState(false);
   const [paymentRegion, setPaymentRegion] = useState("GLOBAL");
   const [currency, setCurrency] = useState("USD");
   const [rates, setRates] = useState(fallbackRates);
@@ -211,6 +212,7 @@ export default function PricingSection() {
       const updated = window.localStorage.getItem("ka_country") || "";
       setCountry(updated);
       setCurrency(getCurrencyForCountry(updated));
+      setCheckoutReady(false);
       if (updated) {
         setPaymentRegion(updated === "IN" ? "IN" : "GLOBAL");
       }
@@ -219,6 +221,7 @@ export default function PricingSection() {
     const onContactChange = () => {
       const updatedContact = window.localStorage.getItem("ka_contact") || "";
       setContact(updatedContact);
+      setCheckoutReady(false);
       const inferred = getCountryFromPhone(updatedContact);
       if (inferred) {
         setCountry(inferred);
@@ -231,14 +234,19 @@ export default function PricingSection() {
       const updatedDemoSlot = window.localStorage.getItem("ka_demo_slot") || "";
       setDemoSlot(updatedDemoSlot);
     };
+    const onCheckoutReady = () => {
+      setCheckoutReady(true);
+    };
 
     window.addEventListener("ka-country-change", onCountryChange);
     window.addEventListener("ka-contact-change", onContactChange);
     window.addEventListener("ka-demo-slot-change", onDemoSlotChange);
+    window.addEventListener("ka-checkout-ready", onCheckoutReady);
     return () => {
       window.removeEventListener("ka-country-change", onCountryChange);
       window.removeEventListener("ka-contact-change", onContactChange);
       window.removeEventListener("ka-demo-slot-change", onDemoSlotChange);
+      window.removeEventListener("ka-checkout-ready", onCheckoutReady);
     };
   }, []);
 
@@ -299,6 +307,7 @@ export default function PricingSection() {
     return "USD";
   }, [country, inferredRegion, contactCountry]);
   const hasPaymentAccess = Boolean(contactRegion && isContactValid);
+  const canShowCheckout = checkoutReady && hasPaymentAccess;
 
   useEffect(() => {
     if (contactRegion) {
@@ -431,6 +440,10 @@ export default function PricingSection() {
         : "Enter a valid contact number to unlock the correct payment option for your region.");
       return;
     }
+    if (!checkoutReady) {
+      setCheckoutStatus("Complete the booking form above to unlock checkout.");
+      return;
+    }
     if (!orderScriptUrl) {
       setCheckoutStatus("Missing order endpoint. Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env or deploy /api/razorpay-order.");
       return;
@@ -537,10 +550,10 @@ export default function PricingSection() {
     <section id="pricing" className="px-4 pb-12 pt-6 md:px-6" aria-labelledby="pricing-title">
       <div className="mx-auto max-w-6xl">
         <h2 id="pricing-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-          Complete Your Booking
+          Checkout
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-700 md:text-base">
-          Enter your details above and continue here to see the payment amount available for your location.
+          Complete any booking flow above to reveal the payment option available for your location.
         </p>
 
         <div
@@ -551,14 +564,16 @@ export default function PricingSection() {
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-900">{inferredRegion === "IN" ? "Razorpay Checkout" : "PayPal Checkout"}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{canShowCheckout ? (inferredRegion === "IN" ? "Razorpay Checkout" : "PayPal Checkout") : "Checkout"}</h3>
               <p className="mt-1 text-sm text-slate-700">
-                {inferredRegion === "IN" ? "Pay securely via UPI, Debit Card, or Credit Card." : "Pay securely via PayPal or international cards."}
+                {canShowCheckout
+                  ? (inferredRegion === "IN" ? "Pay securely via UPI, Debit Card, or Credit Card." : "Pay securely via PayPal or international cards.")
+                  : "Your payment option will appear here after you complete one of the booking flows above."}
               </p>
               <div className="mt-4 inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                 {rateSource === "live" ? "Live FX rates" : "Estimated FX rates"}
               </div>
-              {demoSlot && (
+              {canShowCheckout && demoSlot && (
                 <div className="mt-3 inline-flex max-w-full animate-pulseSoft rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
                   Selected demo slot: {demoSlot}
                 </div>
@@ -566,19 +581,19 @@ export default function PricingSection() {
             </div>
             <div className="flex flex-col gap-3 md:max-w-[22rem] md:items-end">
               <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
-                {hasPaymentAccess ? `Showing ${inferredRegion === "IN" ? "India" : "Global"} checkout only` : "Checkout unlocks after contact verification"}
+                {canShowCheckout ? `${inferredRegion === "IN" ? "India" : "Global"} checkout unlocked` : "Checkout unlocks after booking confirmation"}
               </div>
               <p className="text-xs leading-relaxed text-slate-500 md:text-right">
-                {contactRegion
+                {canShowCheckout && contactRegion
                   ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on contact number.`
-                  : "Enter a valid Indian number to see India pricing, or a valid international number to see Global pricing."}
+                  : "Finish one of the booking flows above to view the right payment option for your location."}
               </p>
-              {hasPaymentAccess && inferredRegion === "GLOBAL" && (
+              {canShowCheckout && inferredRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500 md:text-right">
                   Country detected: {effectiveCountry || "Not selected"} • Currency: {displayCurrency}
                 </p>
               )}
-              {demoSlot && !hasPaymentAccess && (
+              {demoSlot && !canShowCheckout && (
                 <p className="text-xs font-medium leading-relaxed text-amber-700 md:text-right">
                   Demo slots are for India only. Add a valid Indian contact number to unlock the Rs 99 payment.
                 </p>
@@ -589,8 +604,8 @@ export default function PricingSection() {
           <div className="mt-6 grid gap-4 xl:grid-cols-2">
             <div className={`rounded-2xl border bg-slate-50 p-4 transition ${highlightedCard === "workshop" ? "animate-pulseSoft border-amber-300 ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : "border-slate-200"}`}>
               <p className="text-sm font-semibold text-slate-800">Workshop Payment</p>
-              <p className="mt-1 text-sm text-slate-700">{hasPaymentAccess ? `Pay ${pricingInfo.label}` : "Enter a valid contact number to view your workshop price"}</p>
-              {hasPaymentAccess && inferredRegion === "GLOBAL" && (
+              <p className="mt-1 text-sm text-slate-700">{canShowCheckout ? `Pay ${pricingInfo.label}` : "Complete a workshop booking above to unlock this checkout"}</p>
+              {canShowCheckout && inferredRegion === "GLOBAL" && (
                 <p className="mt-1 text-xs text-slate-500">
                   ~{formatMoney(pricingInfo.raw, displayCurrency)} for {pricingInfo.baseInr} INR.
                 </p>
@@ -598,7 +613,7 @@ export default function PricingSection() {
               <button
                 type="button"
                 onClick={() => handleCheckout("workshop")}
-                disabled={!hasPaymentAccess}
+                disabled={!canShowCheckout}
                 className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${highlightedCard === "workshop" ? "animate-pulseSoft" : ""}`}
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
@@ -606,14 +621,14 @@ export default function PricingSection() {
                     <path d="M5 4h10a4 4 0 0 1 0 8H9v8H5V4Zm4 4h6a2 2 0 1 0 0-4H9v4Z" />
                   </svg>
                 </span>
-                {inferredRegion === "IN" ? "Pay Workshop via Razorpay" : "Pay Workshop via PayPal"}
+                {canShowCheckout ? (inferredRegion === "IN" ? "Pay Workshop via Razorpay" : "Pay Workshop via PayPal") : "Workshop Checkout Locked"}
               </button>
             </div>
 
             <div className={`rounded-2xl border bg-slate-50 p-4 transition ${highlightedCard === "program" ? "animate-pulseSoft border-amber-300 ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : "border-slate-200"}`}>
               <p className="text-sm font-semibold text-slate-800">Program Payment</p>
-              <p className="mt-1 text-sm text-slate-700">{hasPaymentAccess ? `Pay ${programPricing.label}` : "Enter a valid contact number to view your program price"}</p>
-              {hasPaymentAccess && inferredRegion === "GLOBAL" && programPricing.baseInr && (
+              <p className="mt-1 text-sm text-slate-700">{canShowCheckout ? `Pay ${programPricing.label}` : "Complete a program booking above to unlock this checkout"}</p>
+              {canShowCheckout && inferredRegion === "GLOBAL" && programPricing.baseInr && (
                 <p className="mt-1 text-xs text-slate-500">
                   ~{formatMoney(programPricing.raw, displayCurrency)} for {programPricing.baseInr} INR.
                 </p>
@@ -621,7 +636,7 @@ export default function PricingSection() {
               <button
                 type="button"
                 onClick={() => handleCheckout("program")}
-                disabled={!hasPaymentAccess}
+                disabled={!canShowCheckout}
                 className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${highlightedCard === "program" ? "animate-pulseSoft" : ""}`}
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
@@ -629,7 +644,7 @@ export default function PricingSection() {
                     <path d="M5 4h10a4 4 0 0 1 0 8H9v8H5V4Zm4 4h6a2 2 0 1 0 0-4H9v4Z" />
                   </svg>
                 </span>
-                {inferredRegion === "IN" ? "Pay Program via Razorpay" : "Pay Program via PayPal"}
+                {canShowCheckout ? (inferredRegion === "IN" ? "Pay Program via Razorpay" : "Pay Program via PayPal") : "Program Checkout Locked"}
               </button>
             </div>
           </div>

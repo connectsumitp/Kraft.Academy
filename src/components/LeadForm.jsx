@@ -147,16 +147,8 @@ export default function LeadForm() {
 
       const body = new URLSearchParams(payload).toString();
 
-      await fetch(scriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body,
-      });
-
       if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("ka-checkout-ready"));
         const target = document.getElementById("razorpay-checkout");
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -165,10 +157,22 @@ export default function LeadForm() {
         } else {
           window.location.hash = "#razorpay-checkout";
         }
-        setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
+        setSubmitMessage("Your details are saved. Complete the payment below to confirm your seat. We will follow up with the next steps on email.\n\nFor any enquiry, use the WhatsApp button or mail us.");
       } else {
-        setSubmitMessage("Thanks! Your program enquiry is submitted successfully.");
+        setSubmitMessage("Your details are saved successfully.");
       }
+
+      fetch(scriptUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body,
+      }).catch(() => {
+        setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
+      });
+
       setForm((prev) => ({
         name: "",
         contact: "",
@@ -191,10 +195,10 @@ export default function LeadForm() {
     <section id="registration" className="px-4 pb-16 pt-8 md:px-6" aria-labelledby="registration-title">
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <h2 id="registration-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-          Program Registration
+          Program Enrollment Booking
         </h2>
-        <p className="mt-2 text-sm text-slate-700">Fill details and our team will share program enrollment payment details on WhatsApp or Email.</p>
-        <p className="mt-2 text-xs font-semibold text-emerald-700">Programs are available on weekends only, between 9 AM and 11 PM IST.</p>
+        <p className="mt-2 text-sm text-slate-700">Choose your program and preferred timing to unlock the correct checkout option.</p>
+        <p className="mt-2 text-xs font-semibold text-emerald-700">Programs run on weekends only, between 9 AM and 11 PM IST.</p>
         <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
         <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
@@ -364,7 +368,7 @@ export default function LeadForm() {
             disabled={submitting}
             className="mt-2 rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {submitting ? "Submitting..." : "Register in Program"}
+            {submitting ? "Saving Details..." : "Continue to Program Checkout"}
           </button>
         </form>
       </div>

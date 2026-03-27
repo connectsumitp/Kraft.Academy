@@ -146,6 +146,7 @@ export default function WorkshopLeadForm() {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("ka_demo_slot");
         window.dispatchEvent(new Event("ka-demo-slot-change"));
+        window.dispatchEvent(new Event("ka-checkout-ready"));
         const target = document.getElementById("razorpay-checkout");
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -154,7 +155,7 @@ export default function WorkshopLeadForm() {
         } else {
           window.location.hash = "#razorpay-checkout";
         }
-        setSubmitMessage("Done. Please complete the payment to confirm your seat. We'll share the session link via email once the payment is completed.\n\nFor enquiry, hit the WhatsApp button or mail us.");
+        setSubmitMessage("Your details are saved. Complete the payment below to confirm your slot. We will share the session link on email after successful payment.\n\nFor any enquiry, use the WhatsApp button or mail us.");
       }
 
       fetch(scriptUrl, {
@@ -165,7 +166,7 @@ export default function WorkshopLeadForm() {
         },
         body: new URLSearchParams(payload).toString(),
       }).catch(() => {
-        setSubmitMessage("Done. Please complete the payment to confirm your seat. We could not confirm lead submission yet, but you can continue with payment below.");
+        setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
       });
 
       setForm((prev) => ({
@@ -191,13 +192,13 @@ export default function WorkshopLeadForm() {
       <section id="workshop-form" className="px-4 pb-10 pt-8 md:px-6" aria-labelledby="workshop-title">
         <div className="mx-auto max-w-6xl rounded-2xl border border-amber-200 bg-white p-6 shadow-sm md:p-8">
           <h2 id="workshop-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-            Preferred Timing Booking
+            1:1 / Global Demo Booking
           </h2>
-          <p className="mt-2 text-sm text-slate-700">For 1:1 demo class bookings or global users who want a preferred timing.</p>
+          <p className="mt-2 text-sm text-slate-700">Choose a preferred slot for a 1:1 demo in India or for any international demo booking.</p>
           <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
             Includes AI Study Toolkit
           </p>
-          <p className="mt-3 text-xs font-semibold text-emerald-700">Preferred timing bookings are available every day between 9 AM and 11 PM IST.</p>
+          <p className="mt-3 text-xs font-semibold text-emerald-700">Preferred timing demo bookings are available every day between 9 AM and 11 PM IST.</p>
           <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
           <form className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
@@ -357,7 +358,7 @@ export default function WorkshopLeadForm() {
                 disabled={submitting}
                 className="rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {submitting ? "Submitting..." : "Book Preferred Timing"}
+                {submitting ? "Saving Details..." : "Continue to Checkout"}
               </button>
               {submitMessage && (
                 <p className="mt-2 text-sm font-medium text-slate-700" role="status" aria-live="polite">
@@ -374,8 +375,8 @@ export default function WorkshopLeadForm() {
           <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-xl font-bold text-slate-900">Seat Reserved</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-700">
-              Done. Please complete the payment to confirm your seat. We&apos;ll share the session link via email once the
-              payment is completed.
+              Your details are saved. Please complete the payment to confirm your slot. We&apos;ll share the session link by
+              email once the payment is completed.
             </p>
             <p className="mt-2 text-sm text-slate-700">For enquiry, hit the WhatsApp button or mail us.</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">

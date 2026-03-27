@@ -54,8 +54,9 @@ export default function ThankYouSection() {
   const isProgram = paymentType === "program";
 
   return (
-    <section id="thank-you" className="scroll-mt-28 px-4 pb-24 pt-8 md:px-6 md:pb-16" aria-labelledby="thank-you-title">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm md:p-8">
+    <section id="thank-you" className="reveal-on-scroll scroll-mt-28 px-4 pb-24 pt-8 md:px-6 md:pb-16" aria-labelledby="thank-you-title">
+      <div className="editorial-panel mx-auto max-w-5xl rounded-[2rem] border-emerald-200 p-6 md:p-8">
+        <span className="section-kicker bg-emerald-100 text-emerald-800">Booking confirmed</span>
         <h2 id="thank-you-title" className="text-2xl font-bold text-emerald-700 md:text-3xl">
           {isProgram ? "Thank you for registering in our program." : "Thank You! Your seat has been reserved."}
         </h2>

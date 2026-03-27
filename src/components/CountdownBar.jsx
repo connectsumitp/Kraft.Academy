@@ -40,6 +40,11 @@ function formatTime(totalSeconds) {
 
 export default function CountdownBar() {
   const [secondsLeft, setSecondsLeft] = useState(getSecondsUntilIstMidnight);
+  const handleReserveClick = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("ka-demo-focus"));
+    }
+  };
 
   useEffect(() => {
     const updateTimer = () => {
@@ -62,7 +67,8 @@ export default function CountdownBar() {
           Booking window closes in {formatTime(secondsLeft)} based on IST.
         </p>
         <a
-          href="#workshop-form"
+          href="#india-demo-classes"
+          onClick={handleReserveClick}
           className="w-full max-w-[18rem] rounded-xl bg-amber-400 px-4 py-2 text-center text-xs font-bold text-slate-900 transition hover:bg-amber-300 md:w-auto md:max-w-none md:text-sm"
         >
           Reserve seats for your child

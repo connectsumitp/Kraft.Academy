@@ -85,15 +85,38 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const nodes = Array.from(document.querySelectorAll(".reveal-on-scroll"));
+    if (!nodes.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -8% 0px" }
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div id="top" className="min-h-screen bg-brand-50 pb-32 text-slate-900 md:pb-28">
+    <div id="top" className="app-shell min-h-screen bg-brand-50 pb-32 text-slate-900 md:pb-28">
       <Header />
       <main>
         <Hero />
         <WorkshopLeadForm />
 
-        <section id="programs" className="px-4 py-10 md:px-6" aria-labelledby="programs-title">
+        <section id="programs" className="reveal-on-scroll px-4 py-12 md:px-6" aria-labelledby="programs-title">
           <div className="mx-auto max-w-6xl">
+            <span className="section-kicker">Future-ready learning tracks</span>
             <h2 id="programs-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
               Our Programs
             </h2>
@@ -109,8 +132,8 @@ export default function App() {
           </div>
         </section>
 
-        <section className="px-4 py-4 md:px-6" aria-label="Trust highlights">
-          <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="reveal-on-scroll px-4 py-4 md:px-6" aria-label="Trust highlights">
+          <div className="editorial-panel mx-auto max-w-6xl rounded-[2rem] p-5">
             <ul className="grid gap-3 text-sm font-medium text-slate-800 sm:grid-cols-2 lg:grid-cols-4">
               {trustItems.map((item) => (
                 <li key={item} className="flex items-center gap-2">
@@ -130,14 +153,15 @@ export default function App() {
 
         <ThankYouSection />
 
-        <section id="faqs" className="px-4 pb-16 pt-2 md:px-6" aria-labelledby="faq-title">
+        <section id="faqs" className="reveal-on-scroll px-4 pb-16 pt-4 md:px-6" aria-labelledby="faq-title">
           <div className="mx-auto max-w-5xl">
+            <span className="section-kicker">Questions parents usually ask</span>
             <h2 id="faq-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
               FAQs
             </h2>
             <div className="mt-5 space-y-4">
               {faqs.map((faq) => (
-                <details key={faq.q} className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F3F4F6]">
+                <details key={faq.q} className="editorial-panel overflow-hidden rounded-[1.6rem]">
                   <summary className="cursor-pointer list-none border-b border-slate-200 px-6 py-5 text-lg font-semibold text-slate-900 md:text-xl">
                     {faq.q}
                   </summary>
@@ -148,8 +172,8 @@ export default function App() {
           </div>
         </section>
 
-        <section className="px-4 pb-16 md:px-6" aria-label="Instructor credentials">
-          <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="reveal-on-scroll px-4 pb-16 md:px-6" aria-label="Instructor credentials">
+          <div className="editorial-panel mx-auto max-w-5xl rounded-[2rem] p-6 md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-center">
               <div className="mx-auto w-full max-w-[220px] overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 shadow-sm md:mx-0 md:max-w-[240px]">
                 <div className="aspect-[4/5] w-full">
@@ -162,6 +186,7 @@ export default function App() {
               </div>
 
               <div className="min-w-0 flex-1">
+                <span className="section-kicker">Why parents trust the instructor</span>
                 <h3 className="text-xl font-bold text-slate-900">Instructor Credentials</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700">
                   Sumit Pandey. Product Manager. 5 Years of Industrial Experience. AI Instructor.
