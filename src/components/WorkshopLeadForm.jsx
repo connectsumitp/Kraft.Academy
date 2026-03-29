@@ -37,6 +37,22 @@ function getDefaultCountry() {
   return localeCountryMap[locale] || locale.split("-")[1] || "US";
 }
 
+function addDaysToIsoDate(isoDate, days) {
+  const [year, month, day] = String(isoDate).split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0));
+  return utcDate.toISOString().slice(0, 10);
+}
+
+function formatDisplayDate(isoDate) {
+  const [year, month, day] = String(isoDate).split("-").map(Number);
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
+}
+
 export default function WorkshopLeadForm() {
   const [form, setForm] = useState({
     name: "",
@@ -63,6 +79,19 @@ export default function WorkshopLeadForm() {
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
   const preferredBounds = useMemo(() => getPreferredDateBounds(), []);
+  const availableDateOptions = useMemo(() => {
+    const options = [];
+    for (let offset = 0; offset < 7; offset += 1) {
+      const isoDate = addDaysToIsoDate(preferredBounds.min, offset);
+      if (isoDate > preferredBounds.max) continue;
+      if (isAvailabilityDateBlocked("preferred", isoDate, availabilityItems)) continue;
+      options.push({
+        value: isoDate,
+        label: formatDisplayDate(isoDate),
+      });
+    }
+    return options;
+  }, [availabilityItems, preferredBounds]);
 
   useEffect(() => {
     let active = true;
@@ -362,18 +391,27 @@ export default function WorkshopLeadForm() {
 
             <div className="space-y-2">
               <p className="select-none text-sm font-medium text-slate-800">Preferred Date</p>
-              <input
+              <select
                 id="workshop-date"
                 name="date"
-                type="date"
                 value={form.date}
-                min={preferredBounds.min}
-                max={preferredBounds.max}
                 onChange={onChange}
                 aria-label="Preferred date"
                 required
                 className="block h-10 w-full cursor-pointer rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 md:h-9 md:px-3 md:py-1"
-              />
+              >
+                <option value="">Select Date</option>
+                {availableDateOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {availableDateOptions.length === 0 && (
+                <p className="mt-1 text-xs font-medium text-rose-700">
+                  No preferred dates are available right now.
+                </p>
+              )}
             </div>
 
             <div>

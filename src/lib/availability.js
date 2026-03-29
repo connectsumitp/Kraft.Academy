@@ -1,4 +1,4 @@
-﻿import { availabilityOverrides } from "../config/availabilityOverrides";
+import { availabilityOverrides } from "../config/availabilityOverrides";
 
 function normalizeSlotLabel(slot) {
   return String(slot || "").trim();
@@ -11,23 +11,26 @@ function normalizeDateValue(value) {
 function flattenOverrides() {
   const items = [];
 
-  Object.entries(availabilityOverrides || {}).forEach(([bookingType, dateMap]) => {
-    Object.entries(dateMap || {}).forEach(([date, slotValue]) => {
-      if (slotValue === "all") {
-        items.push({
-          date: normalizeDateValue(date),
-          bookingType: String(bookingType || "").trim().toLowerCase(),
-          slot: "all",
-          status: "blocked",
-          note: "frontend override",
-        });
-        return;
-      }
+  Object.entries(availabilityOverrides || {}).forEach(([bookingType, config]) => {
+    const normalizedBookingType = String(bookingType || "").trim().toLowerCase();
+    const blockedDates = Array.isArray(config?.blockedDates) ? config.blockedDates : [];
+    const blockedSlots = config?.blockedSlots && typeof config.blockedSlots === "object" ? config.blockedSlots : {};
 
-      (Array.isArray(slotValue) ? slotValue : []).forEach((slot) => {
+    blockedDates.forEach((date) => {
+      items.push({
+        date: normalizeDateValue(date),
+        bookingType: normalizedBookingType,
+        slot: "all",
+        status: "blocked",
+        note: "frontend override",
+      });
+    });
+
+    Object.entries(blockedSlots).forEach(([date, slotList]) => {
+      (Array.isArray(slotList) ? slotList : []).forEach((slot) => {
         items.push({
           date: normalizeDateValue(date),
-          bookingType: String(bookingType || "").trim().toLowerCase(),
+          bookingType: normalizedBookingType,
           slot: normalizeSlotLabel(slot),
           status: "blocked",
           note: "frontend override",
