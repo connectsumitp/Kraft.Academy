@@ -1,77 +1,46 @@
-﻿function normalizeSlotLabel(slot) {
+﻿import { availabilityOverrides } from "../config/availabilityOverrides";
+
+function normalizeSlotLabel(slot) {
   return String(slot || "").trim();
 }
 
 function normalizeDateValue(value) {
-  if (!value) return "";
+  return String(value || "").trim();
+}
 
-  if (typeof value === "string") {
-    const raw = value.trim();
-    const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (isoMatch) return isoMatch[1];
+function flattenOverrides() {
+  const items = [];
 
-    const partsMatch = raw.match(/^(?:[A-Za-z]{3}\s)?([A-Za-z]{3})\s(\d{1,2})\s(\d{4})/);
-    if (partsMatch) {
-      const monthMap = {
-        Jan: "01",
-        Feb: "02",
-        Mar: "03",
-        Apr: "04",
-        May: "05",
-        Jun: "06",
-        Jul: "07",
-        Aug: "08",
-        Sep: "09",
-        Oct: "10",
-        Nov: "11",
-        Dec: "12",
-      };
-      const month = monthMap[partsMatch[1]];
-      const day = String(partsMatch[2]).padStart(2, "0");
-      const year = partsMatch[3];
-      if (month) return `${year}-${month}-${day}`;
-    }
+  Object.entries(availabilityOverrides || {}).forEach(([bookingType, dateMap]) => {
+    Object.entries(dateMap || {}).forEach(([date, slotValue]) => {
+      if (slotValue === "all") {
+        items.push({
+          date: normalizeDateValue(date),
+          bookingType: String(bookingType || "").trim().toLowerCase(),
+          slot: "all",
+          status: "blocked",
+          note: "frontend override",
+        });
+        return;
+      }
 
-    return raw;
-  }
+      (Array.isArray(slotValue) ? slotValue : []).forEach((slot) => {
+        items.push({
+          date: normalizeDateValue(date),
+          bookingType: String(bookingType || "").trim().toLowerCase(),
+          slot: normalizeSlotLabel(slot),
+          status: "blocked",
+          note: "frontend override",
+        });
+      });
+    });
+  });
 
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(value);
-  }
-
-  return String(value).trim();
+  return items;
 }
 
 export async function fetchAvailability() {
-  try {
-    const response = await fetch(`/api/availability?t=${Date.now()}`, {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-    });
-
-    const data = await response.json();
-    if (!response.ok || !data?.ok || !Array.isArray(data.items)) {
-      return [];
-    }
-
-    return data.items.map((item) => ({
-      date: normalizeDateValue(item.date),
-      bookingType: String(item.booking_type || "").trim().toLowerCase(),
-      slot: normalizeSlotLabel(item.slot),
-      status: String(item.status || "").trim().toLowerCase(),
-      note: String(item.note || "").trim(),
-    }));
-  } catch {
-    return [];
-  }
+  return flattenOverrides();
 }
 
 export function isDateFullyBlocked(items, bookingType, isoDate) {
