@@ -3,15 +3,8 @@
 }
 
 export async function fetchAvailability() {
-  const scriptUrl = import.meta.env.VITE_AVAILABILITY_SCRIPT_URL;
-  if (!scriptUrl) return [];
-
   try {
-    const response = await fetch(scriptUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "get_availability" }),
-    });
+    const response = await fetch("/api/availability");
 
     const data = await response.json();
     if (!response.ok || !data?.ok || !Array.isArray(data.items)) {
