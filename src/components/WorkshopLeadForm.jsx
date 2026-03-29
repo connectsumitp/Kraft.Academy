@@ -122,6 +122,17 @@ export default function WorkshopLeadForm() {
 
   const onChange = (event) => {
     const { name, value } = event.target;
+    if (name === "date" && isAvailabilityDateBlocked("preferred", value, availabilityItems)) {
+      setSubmitMessage("That date is unavailable for preferred bookings. Please choose another date.");
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("ka_date");
+        window.localStorage.removeItem("ka_timing");
+        window.dispatchEvent(new Event("ka-date-change"));
+      }
+      setForm((prev) => ({ ...prev, date: "", timing: "" }));
+      return;
+    }
+
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
     }

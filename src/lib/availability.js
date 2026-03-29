@@ -49,7 +49,13 @@ function normalizeDateValue(value) {
 
 export async function fetchAvailability() {
   try {
-    const response = await fetch("/api/availability");
+    const response = await fetch(`/api/availability?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    });
 
     const data = await response.json();
     if (!response.ok || !data?.ok || !Array.isArray(data.items)) {
