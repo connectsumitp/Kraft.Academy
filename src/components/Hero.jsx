@@ -1,78 +1,11 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import BrandName from "./BrandName.jsx";
 import kid from "../assets/kid.png";
+import { getWorkshopGroupSlots } from "./countryTiming";
+import { fetchWorkshopSeats } from "../lib/workshopSeats";
+import { fetchAvailability } from "../lib/availability";
 
-const demoSlots = [
-  {
-    id: "group-7-8",
-    title: "Group Booking",
-    time: "7:00 PM - 8:00 PM (IST)",
-    startMinutes: 19 * 60,
-  },
-  {
-    id: "group-8-9",
-    title: "Group Booking",
-    time: "8:00 PM - 9:00 PM (IST)",
-    startMinutes: 20 * 60,
-  },
-];
-
-const IST_TIME_ZONE = "Asia/Kolkata";
-
-function getIstNowParts() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: IST_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
-
-  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return {
-    year: Number(lookup.year),
-    month: Number(lookup.month),
-    day: Number(lookup.day),
-    hour: Number(lookup.hour),
-    minute: Number(lookup.minute),
-  };
-}
-
-function getFormattedDateInfo(offsetDays = 0) {
-  const now = new Date();
-  const shifted = new Date(now.getTime() + offsetDays * 24 * 60 * 60 * 1000);
-  const isoDate = new Intl.DateTimeFormat("en-CA", {
-    timeZone: IST_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(shifted);
-  const longDate = new Intl.DateTimeFormat("en-GB", {
-    timeZone: IST_TIME_ZONE,
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(shifted);
-
-  return { isoDate, longDate };
-}
-
-function getSlotSchedule(slot) {
-  const now = getIstNowParts();
-  const currentMinutes = now.hour * 60 + now.minute;
-  const isNextDay = currentMinutes >= slot.startMinutes;
-  const dateInfo = getFormattedDateInfo(isNextDay ? 1 : 0);
-
-  return {
-    ...dateInfo,
-    dayLabel: isNextDay ? "Tomorrow" : "Today",
-  };
-}
-
-function scrollToRazorpaySection() {
+function scrollToCheckout() {
   if (typeof window === "undefined") return;
 
   window.location.hash = "#razorpay-checkout";
@@ -97,29 +30,65 @@ export default function Hero() {
   });
   const [touched, setTouched] = useState(false);
   const [bookingMessage, setBookingMessage] = useState("");
-  const [bookingBusy, setBookingBusy] = useState(false);
   const [isDemoHighlighted, setIsDemoHighlighted] = useState(false);
+  const [seatMap, setSeatMap] = useState({});
+  const [availabilityItems, setAvailabilityItems] = useState([]);
+  const workshopDays = useMemo(() => getWorkshopGroupSlots(availabilityItems), [availabilityItems]);
 
   const isIndianContact = useMemo(
     () => Boolean(demoForm.contact && demoForm.contact.startsWith("+91") && isValidPhoneNumber(demoForm.contact)),
     [demoForm.contact]
   );
 
-  const slotSchedules = demoSlots.map((slot) => ({ ...slot, schedule: getSlotSchedule(slot) }));
+  useEffect(() => {
+    let active = true;
+    fetchAvailability().then((items) => {
+      if (active) {
+        setAvailabilityItems(items);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return undefined;
+    let active = true;
+    const loadSeats = async () => {
+      const slotKeys = workshopDays.flatMap((day) => day.slots.map((slot) => slot.slotKey));
+      const seats = await fetchWorkshopSeats(slotKeys);
+      if (active) {
+        setSeatMap(seats);
+      }
+    };
+
+    loadSeats();
+
+    if (typeof window === "undefined") return () => {
+      active = false;
+    };
+
+    const onSeatUpdate = (event) => {
+      const slotKey = event?.detail?.slotKey;
+      const seatsLeft = event?.detail?.seatsLeft;
+      if (!slotKey || typeof seatsLeft !== "number") return;
+      setSeatMap((prev) => ({ ...prev, [slotKey]: Math.max(0, seatsLeft) }));
+    };
 
     const onDemoFocus = () => {
       setIsDemoHighlighted(true);
       window.setTimeout(() => setIsDemoHighlighted(false), 2200);
     };
 
+    window.addEventListener("ka-workshop-seat-update", onSeatUpdate);
     window.addEventListener("ka-demo-focus", onDemoFocus);
+
     return () => {
+      active = false;
+      window.removeEventListener("ka-workshop-seat-update", onSeatUpdate);
       window.removeEventListener("ka-demo-focus", onDemoFocus);
     };
-  }, []);
+  }, [workshopDays]);
 
   const handleDemoSlotClick = async (slot) => {
     setTouched(true);
@@ -130,60 +99,66 @@ export default function Hero() {
       return;
     }
 
+    const seatsLeft = Number(seatMap[slot.slotKey] ?? 15);
+    if (slot.isClosedForTime) {
+      setBookingMessage("This workshop slot has already closed. Please choose another workshop slot.");
+      return;
+    }
+    if (seatsLeft <= 0) {
+      setBookingMessage("This workshop slot is full. Please choose another workshop slot.");
+      return;
+    }
+
     const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
-    const schedule = slot.schedule;
-    const selectedSlotLabel = `${slot.title} | ${schedule.dayLabel} | ${schedule.longDate} | ${slot.time}`;
+    const selectedSlotLabel = `${slot.weekdayLabel} | ${slot.longDate} | ${slot.time}`;
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem("ka_name", demoForm.name);
       window.localStorage.setItem("ka_email", demoForm.email);
       window.localStorage.setItem("ka_contact", demoForm.contact);
       window.localStorage.setItem("ka_country", "IN");
-      window.localStorage.setItem("ka_date", schedule.isoDate);
+      window.localStorage.setItem("ka_date", slot.isoDate);
       window.localStorage.setItem("ka_timing", slot.time);
       window.localStorage.removeItem("ka_program");
       window.localStorage.setItem("ka_demo_slot", selectedSlotLabel);
+      window.localStorage.setItem("ka_workshop_slot_key", slot.slotKey);
       window.dispatchEvent(new Event("ka-contact-change"));
       window.dispatchEvent(new Event("ka-country-change"));
       window.dispatchEvent(new Event("ka-date-change"));
       window.dispatchEvent(new Event("ka-demo-slot-change"));
+      window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
       window.dispatchEvent(new Event("ka-checkout-ready"));
     }
 
-    setBookingMessage(`Demo slot selected for ${schedule.dayLabel.toLowerCase()}, ${schedule.longDate}. Continue below to complete the Rs 99 India payment.`);
-    setBookingBusy(true);
-    scrollToRazorpaySection();
+    setBookingMessage(`Workshop slot selected for ${slot.weekdayLabel}, ${slot.longDate}. Continue below to complete the Rs 99 payment.`);
+    scrollToCheckout();
 
-    try {
-      if (scriptUrl) {
-        const payload = {
-          name: demoForm.name,
-          contact: demoForm.contact,
-          email: demoForm.email,
-          age: "",
-          country: "IN",
-          date: schedule.isoDate,
-          timing: slot.time,
-          program: "",
-          lead_type: "workshop",
-          source: "website_demo_slot_top_form",
-          created_at: new Date().toISOString(),
-          payment_status: "",
-        };
+    if (scriptUrl) {
+      const payload = {
+        name: demoForm.name,
+        contact: demoForm.contact,
+        email: demoForm.email,
+        age: "",
+        country: "IN",
+        date: slot.isoDate,
+        timing: slot.time,
+        program: "",
+        lead_type: "workshop_group",
+        source: "website_india_group_workshop",
+        created_at: new Date().toISOString(),
+        payment_status: "",
+      };
 
-        fetch(scriptUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          },
-          body: new URLSearchParams(payload).toString(),
-        }).catch(() => {
-          setBookingMessage("We saved your demo slot details, but lead submission could not be confirmed. You can still continue to payment below.");
-        });
-      }
-    } finally {
-      window.setTimeout(() => setBookingBusy(false), 250);
+      fetch(scriptUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body: new URLSearchParams(payload).toString(),
+      }).catch(() => {
+        setBookingMessage("We saved your workshop slot details, but lead submission could not be confirmed. You can still continue to payment below.");
+      });
     }
   };
 
@@ -197,7 +172,7 @@ export default function Hero() {
               AI Demo + Study Skills
             </span>
             <span className="inline-flex animate-verticalBounce items-center rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-amber-200">
-              Limited Seats Available
+              Limited Workshop Seats
             </span>
           </div>
 
@@ -219,12 +194,12 @@ export default function Hero() {
               <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Age group</p>
             </div>
             <div className="editorial-panel rounded-[1.35rem] px-4 py-4">
-              <p className="text-2xl font-extrabold tracking-[-0.04em] text-slate-950">2 Slots</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Daily India demos</p>
+              <p className="text-2xl font-extrabold tracking-[-0.04em] text-slate-950">Fri-Sun</p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Workshop days</p>
             </div>
             <div className="editorial-panel rounded-[1.35rem] px-4 py-4">
               <p className="text-2xl font-extrabold tracking-[-0.04em] text-slate-950">Rs 99</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Group demo price</p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Group workshop price</p>
             </div>
           </div>
 
@@ -237,21 +212,21 @@ export default function Hero() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white">
-                  India Group Demo Classes
+                  India Group Workshops
                 </span>
                 <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  Everyday booking
+                  Friday, Saturday, Sunday
                 </span>
               </div>
               <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-900">
-                Fastest way to book
+                15 seats per slot
               </span>
             </div>
 
             <p className="mt-4 max-w-2xl text-sm font-semibold leading-relaxed text-slate-900 md:text-base">
-              Pick a live group demo slot for India and continue straight to the Rs 99 checkout.
+              Pick one of the live India workshop slots below and continue straight to the Rs 99 checkout.
             </p>
-            <p className="mt-2 text-xs font-medium text-slate-600">Enter name, email, and a valid Indian contact number to unlock these demo slots.</p>
+            <p className="mt-2 text-xs font-medium text-slate-600">Enter name, email, and a valid Indian contact number to unlock these workshop slots.</p>
 
             <div className="mt-5 grid gap-3 xl:grid-cols-3">
               <input
@@ -259,7 +234,7 @@ export default function Hero() {
                 value={demoForm.name}
                 onChange={(event) => setDemoForm((prev) => ({ ...prev, name: event.target.value }))}
                 placeholder="Student name"
-                aria-label="Demo booking name"
+                aria-label="Workshop booking name"
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
               />
               <input
@@ -267,7 +242,7 @@ export default function Hero() {
                 value={demoForm.email}
                 onChange={(event) => setDemoForm((prev) => ({ ...prev, email: event.target.value }))}
                 placeholder="Parent email"
-                aria-label="Demo booking email"
+                aria-label="Workshop booking email"
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
               />
               <div>
@@ -288,36 +263,61 @@ export default function Hero() {
             </div>
 
             {touched && !isIndianContact && (
-              <p className="mt-2 text-sm font-medium text-rose-700">Please enter a valid Indian contact number for demo class booking.</p>
+              <p className="mt-2 text-sm font-medium text-rose-700">Please enter a valid Indian contact number for workshop booking.</p>
             )}
 
-            <div className="mt-5 grid gap-3 lg:grid-cols-2">
-              {slotSchedules.map((slot, index) => (
-                <button
-                  key={slot.id}
-                  type="button"
-                  onClick={() => handleDemoSlotClick(slot)}
-                  className={`group relative overflow-hidden rounded-[1.6rem] border border-amber-200 bg-[linear-gradient(180deg,#fffef8_0%,#fff4cc_100%)] px-4 py-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-amber-300 hover:shadow-[0_20px_40px_rgba(251,191,36,0.16)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
-                    index === 0 ? "animate-pulseSoft" : "animate-verticalBounce"
-                  }`}
-                >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/80" />
-                  <span className="inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-700 shadow-sm sm:text-[11px]">
-                    {slot.schedule.dayLabel} - {slot.schedule.longDate}
-                  </span>
-                  <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mt-6 space-y-4">
+              {workshopDays.length === 0 && (
+                <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700">
+                  No group workshop slots are available right now. Please use the preferred timing section below for a 1:1 or global booking.
+                </div>
+              )}
+              {workshopDays.map((day) => (
+                <div key={day.isoDate} className="rounded-[1.6rem] border border-amber-200 bg-[linear-gradient(180deg,#fffef8_0%,#fff8de_100%)] p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-600">{slot.title}</p>
-                      <p className="mt-1 text-lg font-extrabold leading-tight tracking-[-0.03em] text-slate-950">{slot.time}</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{day.weekdayLabel}</p>
+                      <p className="mt-1 text-lg font-extrabold tracking-[-0.03em] text-slate-950">{day.longDate}</p>
                     </div>
-                    <span className="inline-flex w-fit rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                      Rs 99
+                    <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                      Group workshop · Rs 99
                     </span>
                   </div>
-                  <p className="mt-2 text-xs font-medium leading-relaxed text-slate-700 transition group-hover:text-slate-900">
-                    Tap to continue to India checkout for Rs 99
-                  </p>
-                </button>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {day.slots.map((slot) => {
+                      const seatsLeft = Number(seatMap[slot.slotKey] ?? 15);
+                      const isDisabled = slot.isClosedForTime || seatsLeft <= 0;
+                      return (
+                        <button
+                          key={slot.slotKey}
+                          type="button"
+                          onClick={() => handleDemoSlotClick(slot)}
+                          disabled={isDisabled}
+                          className={`group rounded-[1.3rem] border px-4 py-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
+                            isDisabled
+                              ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                              : "border-amber-200 bg-white shadow-sm hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-[0_20px_40px_rgba(251,191,36,0.12)]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-base font-bold text-slate-950">{slot.time}</p>
+                            <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-900">
+                              {isDisabled ? (slot.isClosedForTime ? "Closed" : "Full") : `${seatsLeft} seats left`}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs font-medium text-slate-600 group-hover:text-slate-800">
+                            {isDisabled
+                              ? slot.isClosedForTime
+                                ? "This workshop slot has already started or closed."
+                                : "This workshop slot has reached the 15-seat limit."
+                              : "Tap to continue to checkout for this workshop slot."}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -327,11 +327,11 @@ export default function Hero() {
               </p>
             )}
 
-            <div className="mt-5 flex flex-col gap-2 text-sm text-slate-700">
+            <div className="mt-5 flex flex-col gap-3 text-sm text-slate-700">
               <p>
-                Need a 1:1 demo at your preferred time?{" "}
+                Want your preferred timing for demo classes 1:1?{" "}
                 <a href="#workshop-form" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
-                  Book it in the preferred timing section below.
+                  This is available in the booking section below.
                 </a>
               </p>
               <a
@@ -341,7 +341,7 @@ export default function Hero() {
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
                   <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm6.93 9h-3.27a15.72 15.72 0 0 0-1.18-4.57A8.05 8.05 0 0 1 18.93 11ZM12 4.07c.88 1.09 1.89 3.43 2.27 6.93H9.73C10.11 7.5 11.12 5.16 12 4.07ZM4.48 13h3.28A15.72 15.72 0 0 0 8.93 17.57 8.05 8.05 0 0 1 4.48 13Zm3.28-2H4.48a8.05 8.05 0 0 1 4.45-4.57A15.72 15.72 0 0 0 7.76 11Zm1.97 0a13.79 13.79 0 0 1 2.27-6.53A13.79 13.79 0 0 1 14.27 11Zm4.54 2A13.79 13.79 0 0 1 12 19.53 13.79 13.79 0 0 1 9.73 13Zm1.39 4.57A15.72 15.72 0 0 0 16.24 13h3.28a8.05 8.05 0 0 1-4.45 4.57Z" />
                 </svg>
-                Global students? Book your preferred timing here.
+                Global students or 1:1 demo? Book your preferred timing here.
               </a>
             </div>
           </div>

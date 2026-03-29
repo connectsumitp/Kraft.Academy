@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+import { getProgramTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+import { fetchAvailability } from "../lib/availability";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -39,13 +40,13 @@ function getDefaultCountry() {
 const programs = ["AI Future Skills", "Coding Bootcamp"];
 
 export default function LeadForm() {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [form, setForm] = useState({
     name: "",
     contact: "",
     email: "",
     age: "",
     country: "",
-    date: "",
     program: "",
     timing: "",
   });
@@ -53,12 +54,25 @@ export default function LeadForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [geoCountry, setGeoCountry] = useState("");
+  const [availabilityItems, setAvailabilityItems] = useState([]);
 
   const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
-  const timingOptions = useMemo(() => getTimingOptions(form.country), [form.country]);
-  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country), [form.country]);
+  const timingOptions = useMemo(() => getProgramTimingOptions(form.country, availabilityItems), [form.country, availabilityItems]);
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, "", "program"), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
+
+  useEffect(() => {
+    let active = true;
+    fetchAvailability().then((items) => {
+      if (active) {
+        setAvailabilityItems(items);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -91,17 +105,15 @@ export default function LeadForm() {
     }
   }, [defaultCountry, form.country, geoCountry]);
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
+  const onChange = (event) => {
+    const { name, value } = event.target;
 
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
     }
-
     if (name === "program" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_program", value);
     }
-
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
     }
@@ -113,8 +125,8 @@ export default function LeadForm() {
     }));
   };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (event) => {
+    event.preventDefault();
     setTouched(true);
     setSubmitMessage("");
 
@@ -145,9 +157,11 @@ export default function LeadForm() {
         payment_status: "",
       };
 
-      const body = new URLSearchParams(payload).toString();
-
       if (typeof window !== "undefined") {
+        window.localStorage.removeItem("ka_demo_slot");
+        window.localStorage.removeItem("ka_workshop_slot_key");
+        window.dispatchEvent(new Event("ka-demo-slot-change"));
+        window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
         window.dispatchEvent(new Event("ka-checkout-ready"));
         const target = document.getElementById("razorpay-checkout");
         if (target) {
@@ -157,9 +171,7 @@ export default function LeadForm() {
         } else {
           window.location.hash = "#razorpay-checkout";
         }
-        setSubmitMessage("Your details are saved. Complete the payment below to confirm your seat. We will follow up with the next steps on email.\n\nFor any enquiry, use the WhatsApp button or mail us.");
-      } else {
-        setSubmitMessage("Your details are saved successfully.");
+        setSubmitMessage("Your program details are saved. Complete the payment below to confirm enrollment.");
       }
 
       fetch(scriptUrl, {
@@ -168,7 +180,7 @@ export default function LeadForm() {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         },
-        body,
+        body: new URLSearchParams(payload).toString(),
       }).catch(() => {
         setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
       });
@@ -179,12 +191,11 @@ export default function LeadForm() {
         email: "",
         age: "",
         country: prev.country,
-        date: "",
         program: "",
         timing: "",
       }));
       setTouched(false);
-    } catch (error) {
+    } catch {
       setSubmitMessage("Submission failed. Check Apps Script deployment access and sheet name, then try again.");
     } finally {
       setSubmitting(false);
@@ -193,188 +204,208 @@ export default function LeadForm() {
 
   return (
     <section id="registration" className="px-4 pb-16 pt-8 md:px-6" aria-labelledby="registration-title">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-        <h2 id="registration-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-          Program Enrollment Booking
-        </h2>
-        <p className="mt-2 text-sm text-slate-700">Choose your program and preferred timing to unlock the correct checkout option.</p>
-        <p className="mt-2 text-xs font-semibold text-emerald-700">Programs run on weekends only, between 9 AM and 11 PM IST.</p>
-        <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
-
-        <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
+      <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-800">
-              Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              value={form.name}
-              onChange={onChange}
-              aria-label="Student name"
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="contact" className="mb-1 block text-sm font-medium text-slate-800">
-              Contact
-            </label>
-            <PhoneInput
-              id="contact"
-              international
-              defaultCountry={resolvedDefaultCountry}
-              countryCallingCodeEditable={false}
-              countrySelectProps={{ "aria-label": "Country" }}
-              placeholder="Enter contact number"
-              value={form.contact}
-              onChange={(value) => {
-                const next = value || "";
-                const inferred = getCountryFromPhone(next);
-                setForm((prev) => ({
-                  ...prev,
-                  contact: next,
-                  country: inferred || (next ? prev.country : ""),
-                  timing: !next || (inferred && inferred !== prev.country) ? "" : prev.timing,
-                }));
-                if (typeof window !== "undefined") {
-                  window.localStorage.setItem("ka_contact", next);
-                  window.dispatchEvent(new Event("ka-contact-change"));
-                  if (inferred && inferred !== form.country) {
-                    window.localStorage.setItem("ka_country", inferred);
-                    window.localStorage.removeItem("ka_timing");
-                    window.dispatchEvent(new Event("ka-country-change"));
-                  } else if (!next) {
-                    window.localStorage.removeItem("ka_country");
-                    window.localStorage.removeItem("ka_timing");
-                    window.dispatchEvent(new Event("ka-country-change"));
-                  }
-                }
-              }}
-              onCountryChange={(country) => {
-                const nextCountry = country || "";
-                if (nextCountry && nextCountry !== form.country) {
-                  setForm((prev) => ({ ...prev, country: nextCountry, timing: "" }));
-                  if (typeof window !== "undefined") {
-                    window.localStorage.setItem("ka_country", nextCountry);
-                    window.dispatchEvent(new Event("ka-country-change"));
-                  }
-                }
-              }}
-              className="phone-input"
-              aria-label="Contact number"
-            />
-            {touched && !isContactValid && (
-              <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid contact number.</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-800">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={onChange}
-              aria-label="Email"
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="age" className="mb-1 block text-sm font-medium text-slate-800">
-              Age
-            </label>
-            <select
-              id="age"
-              name="age"
-              value={form.age}
-              onChange={onChange}
-              aria-label="Age"
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">Select Age</option>
-              {[11, 12, 13, 14, 15, 16, 17, 18].map((age) => (
-                <option key={age} value={`${age}`}>
-                  {age} years
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="program" className="mb-1 block text-sm font-medium text-slate-800">
-              Select Program
-            </label>
-            <select
-              id="program"
-              name="program"
-              value={form.program}
-              onChange={onChange}
-              aria-label="Select program"
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">Select Program</option>
-              {programs.map((program) => (
-                <option key={program} value={program}>
-                  {program}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="timing" className="mb-1 block text-sm font-medium text-slate-800">
-              Timing
-            </label>
-            <select
-              id="timing"
-              name="timing"
-              value={form.timing}
-              onChange={onChange}
-              aria-label="Select timing"
-              required
-              disabled={!isContactValid || !form.country}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
-              >
-              <option value="">
-                {isContactValid && form.country ? "Select Timing" : "Select Valid Contact First"}
-              </option>
-              {timingOptions.map((timing) => (
-                <option key={timing} value={timing}>
-                  {timing}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
-          </div>
-
-          {submitMessage && (
-            <p className="text-sm font-medium text-slate-700" role="status" aria-live="polite">
-              {submitMessage}
+            <h2 id="registration-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
+              Program Enrollment Booking
+            </h2>
+            <p className="mt-2 text-sm text-slate-700">
+              Weekend-only program bookings. Expand this section when you are ready to enroll.
             </p>
-          )}
-
+            <p className="mt-2 text-xs font-semibold text-emerald-700">
+              Program timings are available on weekends only, from 10 AM IST to 12 midnight IST, excluding 7-8 PM IST and 8-9 PM IST.
+            </p>
+          </div>
           <button
-            type="submit"
-            disabled={submitting}
-            className="mt-2 rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+            aria-expanded={isExpanded}
+            aria-controls="program-enrollment-panel"
           >
-            {submitting ? "Saving Details..." : "Continue to Program Checkout"}
+            {isExpanded ? "Hide Program Enrollment" : "Enroll for a Program"}
           </button>
-        </form>
+        </div>
+
+        {isExpanded && (
+          <form id="program-enrollment-panel" className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
+            <p className="text-xs font-medium text-slate-600">All fields are mandatory.</p>
+
+            <div>
+              <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-800">
+                Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={form.name}
+                onChange={onChange}
+                aria-label="Student name"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="contact" className="mb-1 block text-sm font-medium text-slate-800">
+                Contact
+              </label>
+              <PhoneInput
+                id="contact"
+                international
+                defaultCountry={resolvedDefaultCountry}
+                countryCallingCodeEditable={false}
+                countrySelectProps={{ "aria-label": "Country" }}
+                placeholder="Enter contact number"
+                value={form.contact}
+                onChange={(value) => {
+                  const next = value || "";
+                  const inferred = getCountryFromPhone(next);
+                  setForm((prev) => ({
+                    ...prev,
+                    contact: next,
+                    country: inferred || (next ? prev.country : ""),
+                    timing: !next || (inferred && inferred !== prev.country) ? "" : prev.timing,
+                  }));
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem("ka_contact", next);
+                    window.dispatchEvent(new Event("ka-contact-change"));
+                    if (inferred && inferred !== form.country) {
+                      window.localStorage.setItem("ka_country", inferred);
+                      window.localStorage.removeItem("ka_timing");
+                      window.dispatchEvent(new Event("ka-country-change"));
+                    } else if (!next) {
+                      window.localStorage.removeItem("ka_country");
+                      window.localStorage.removeItem("ka_timing");
+                      window.dispatchEvent(new Event("ka-country-change"));
+                    }
+                  }
+                }}
+                onCountryChange={(country) => {
+                  const nextCountry = country || "";
+                  if (nextCountry && nextCountry !== form.country) {
+                    setForm((prev) => ({ ...prev, country: nextCountry, timing: "" }));
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem("ka_country", nextCountry);
+                      window.dispatchEvent(new Event("ka-country-change"));
+                    }
+                  }
+                }}
+                className="phone-input"
+                aria-label="Contact number"
+              />
+              {touched && !isContactValid && (
+                <p className="mt-1 text-sm font-medium text-rose-700">Enter a valid contact number.</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-800">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={onChange}
+                aria-label="Email"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="age" className="mb-1 block text-sm font-medium text-slate-800">
+                Age
+              </label>
+              <select
+                id="age"
+                name="age"
+                value={form.age}
+                onChange={onChange}
+                aria-label="Age"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">Select Age</option>
+                {[11, 12, 13, 14, 15, 16, 17, 18].map((age) => (
+                  <option key={age} value={`${age}`}>
+                    {age} years
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="program" className="mb-1 block text-sm font-medium text-slate-800">
+                Select Program
+              </label>
+              <select
+                id="program"
+                name="program"
+                value={form.program}
+                onChange={onChange}
+                aria-label="Select program"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">Select Program</option>
+                {programs.map((program) => (
+                  <option key={program} value={program}>
+                    {program}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="timing" className="mb-1 block text-sm font-medium text-slate-800">
+                Weekend Timing
+              </label>
+              <select
+                id="timing"
+                name="timing"
+                value={form.timing}
+                onChange={onChange}
+                aria-label="Select timing"
+                required
+                disabled={!isContactValid || !form.country}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="">{isContactValid && form.country ? "Select Weekend Timing" : "Select Valid Contact First"}</option>
+                {timingOptions.map((timing) => (
+                  <option key={timing} value={timing}>
+                    {timing}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
+              {isContactValid && form.country && timingOptions.length === 0 && (
+                <p className="mt-1 text-xs font-medium text-rose-700">
+                  No weekend program timings are available right now for this setup.
+                </p>
+              )}
+            </div>
+
+            {submitMessage && (
+              <p className="text-sm font-medium text-slate-700" role="status" aria-live="polite">
+                {submitMessage}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-2 rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {submitting ? "Saving Details..." : "Continue to Program Checkout"}
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );
 }
-
-
-

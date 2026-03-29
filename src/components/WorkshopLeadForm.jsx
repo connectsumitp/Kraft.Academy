@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { getTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
+import { getPreferredDateBounds, getPreferredTimingOptions, getTimingTimezoneLabel, isAvailabilityDateBlocked } from "./countryTiming";
+import { fetchAvailability } from "../lib/availability";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -51,12 +52,29 @@ export default function WorkshopLeadForm() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [geoCountry, setGeoCountry] = useState("");
+  const [availabilityItems, setAvailabilityItems] = useState([]);
 
   const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
-  const timingOptions = useMemo(() => getTimingOptions(form.country, form.date), [form.country, form.date]);
-  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, form.date), [form.country, form.date]);
+  const timingOptions = useMemo(
+    () => getPreferredTimingOptions(form.country, form.date, availabilityItems),
+    [form.country, form.date, availabilityItems]
+  );
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, form.date, "preferred"), [form.country, form.date]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
+  const preferredBounds = useMemo(() => getPreferredDateBounds(), []);
+
+  useEffect(() => {
+    let active = true;
+    fetchAvailability().then((items) => {
+      if (active) {
+        setAvailabilityItems(items);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -89,18 +107,33 @@ export default function WorkshopLeadForm() {
     }
   }, [defaultCountry, form.country, geoCountry]);
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "timing" && typeof window !== "undefined") {
-      window.localStorage.setItem("ka_timing", value);
-    }
-    if (name === "date" && typeof window !== "undefined") {
-      window.localStorage.setItem("ka_date", value);
+  useEffect(() => {
+    if (!form.date) return;
+    if (!isAvailabilityDateBlocked("preferred", form.date, availabilityItems)) return;
+
+    setForm((prev) => ({ ...prev, date: "", timing: "" }));
+    setSubmitMessage("That date is unavailable for preferred bookings. Please choose another date.");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("ka_date");
+      window.localStorage.removeItem("ka_timing");
       window.dispatchEvent(new Event("ka-date-change"));
     }
+  }, [availabilityItems, form.date]);
+
+  const onChange = (event) => {
+    const { name, value } = event.target;
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
     }
+    if (name === "date" && typeof window !== "undefined") {
+      window.localStorage.setItem("ka_date", value);
+      window.localStorage.removeItem("ka_timing");
+      window.dispatchEvent(new Event("ka-date-change"));
+    }
+    if (name === "timing" && typeof window !== "undefined") {
+      window.localStorage.setItem("ka_timing", value);
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -108,8 +141,8 @@ export default function WorkshopLeadForm() {
     }));
   };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (event) => {
+    event.preventDefault();
     setTouched(true);
     setSubmitMessage("");
 
@@ -134,18 +167,17 @@ export default function WorkshopLeadForm() {
         date: form.date,
         timing: form.timing,
         program: "",
-        lead_type: "workshop",
-        source: "website_workshop_top_form",
+        lead_type: "workshop_preferred",
+        source: "website_workshop_preferred_form",
         created_at: new Date().toISOString(),
         payment_status: "",
       };
 
-      if (typeof window !== "undefined" && typeof window.fbq === "function") {
-        window.fbq("track", "Lead", { lead_type: "workshop", source: "website_workshop_top_form" });
-      }
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("ka_demo_slot");
+        window.localStorage.removeItem("ka_workshop_slot_key");
         window.dispatchEvent(new Event("ka-demo-slot-change"));
+        window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
         window.dispatchEvent(new Event("ka-checkout-ready"));
         const target = document.getElementById("razorpay-checkout");
         if (target) {
@@ -155,7 +187,9 @@ export default function WorkshopLeadForm() {
         } else {
           window.location.hash = "#razorpay-checkout";
         }
-        setSubmitMessage("Your details are saved. Complete the payment below to confirm your slot. We will share the session link on email after successful payment.\n\nFor any enquiry, use the WhatsApp button or mail us.");
+        setSubmitMessage(
+          "Your preferred 1:1 / global booking details are saved. Continue below to complete payment. We will share the session link on email after successful payment."
+        );
       }
 
       fetch(scriptUrl, {
@@ -180,7 +214,7 @@ export default function WorkshopLeadForm() {
       }));
       setTouched(false);
       setShowSuccess(true);
-    } catch (error) {
+    } catch {
       setSubmitMessage("Submission failed. Please try again.");
     } finally {
       setSubmitting(false);
@@ -194,11 +228,15 @@ export default function WorkshopLeadForm() {
           <h2 id="workshop-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
             1:1 / Global Demo Booking
           </h2>
-          <p className="mt-2 text-sm text-slate-700">Choose a preferred slot for a 1:1 demo in India or for any international demo booking.</p>
-          <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
-            Includes AI Study Toolkit
+          <p className="mt-2 text-sm text-slate-700">
+            Choose a preferred 1:1 demo slot for India or any international demo booking for the next 7 days.
           </p>
-          <p className="mt-3 text-xs font-semibold text-emerald-700">Preferred timing demo bookings are available every day between 9 AM and 11 PM IST.</p>
+          <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
+            India 1:1 demo: Rs 499 · Global demo: local equivalent of 1000 INR
+          </p>
+          <p className="mt-3 text-xs font-semibold text-emerald-700">
+            Preferred bookings are available for the next 7 days only, from 10 AM IST to 12 midnight IST. Friday, Saturday, and Sunday exclude 7-8 PM IST and 8-9 PM IST.
+          </p>
           <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
           <form className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
@@ -238,7 +276,7 @@ export default function WorkshopLeadForm() {
                     contact: next,
                     country: inferred || (next ? prev.country : ""),
                     timing: !next || (inferred && inferred !== prev.country) ? "" : prev.timing,
-                    date: next ? prev.date : "",
+                    date: !next ? "" : prev.date,
                   }));
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
@@ -312,15 +350,14 @@ export default function WorkshopLeadForm() {
             </div>
 
             <div className="space-y-2">
-              <p className="select-none text-sm font-medium text-slate-800">
-                Preferred Date
-              </p>
+              <p className="select-none text-sm font-medium text-slate-800">Preferred Date</p>
               <input
                 id="workshop-date"
                 name="date"
                 type="date"
                 value={form.date}
-                min={new Date().toISOString().split("T")[0]}
+                min={preferredBounds.min}
+                max={preferredBounds.max}
                 onChange={onChange}
                 aria-label="Preferred date"
                 required
@@ -350,6 +387,11 @@ export default function WorkshopLeadForm() {
                 ))}
               </select>
               <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
+              {form.date && isContactValid && timingOptions.length === 0 && (
+                <p className="mt-1 text-xs font-medium text-rose-700">
+                  No preferred timings are available for that date. Please choose another date.
+                </p>
+              )}
             </div>
 
             <div className="lg:col-span-2 xl:col-span-3">
@@ -373,10 +415,9 @@ export default function WorkshopLeadForm() {
       {showSuccess && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/55 px-4" role="dialog" aria-modal="true">
           <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-xl font-bold text-slate-900">Seat Reserved</h3>
+            <h3 className="text-xl font-bold text-slate-900">Booking Saved</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-700">
-              Your details are saved. Please complete the payment to confirm your slot. We&apos;ll share the session link by
-              email once the payment is completed.
+              Your preferred booking details are saved. Please complete the payment to confirm your slot. We&apos;ll share the session link by email once the payment is completed.
             </p>
             <p className="mt-2 text-sm text-slate-700">For enquiry, hit the WhatsApp button or mail us.</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -402,6 +443,3 @@ export default function WorkshopLeadForm() {
     </>
   );
 }
-
-
-
