@@ -112,7 +112,7 @@ export default function WorkshopLeadForm() {
     if (!isAvailabilityDateBlocked("preferred", form.date, availabilityItems)) return;
 
     setForm((prev) => ({ ...prev, date: "", timing: "" }));
-    setSubmitMessage("That date is unavailable for preferred bookings. Please choose another date.");
+    setSubmitMessage("This option is unavailable. Please choose another one.");
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("ka_date");
       window.localStorage.removeItem("ka_timing");
@@ -123,7 +123,7 @@ export default function WorkshopLeadForm() {
   const onChange = (event) => {
     const { name, value } = event.target;
     if (name === "date" && isAvailabilityDateBlocked("preferred", value, availabilityItems)) {
-      setSubmitMessage("That date is unavailable for preferred bookings. Please choose another date.");
+      setSubmitMessage("This option is unavailable. Please choose another one.");
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("ka_date");
         window.localStorage.removeItem("ka_timing");
@@ -400,7 +400,7 @@ export default function WorkshopLeadForm() {
               <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
               {form.date && isContactValid && timingOptions.length === 0 && (
                 <p className="mt-1 text-xs font-medium text-rose-700">
-                  No preferred timings are available for that date. Please choose another date.
+                  This option is unavailable. Please choose another one.
                 </p>
               )}
             </div>
