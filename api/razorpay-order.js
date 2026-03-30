@@ -51,9 +51,28 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = { raw: rawText };
+    }
+
     if (!response.ok) {
-      res.status(response.status).json({ ok: false, error: data?.error?.description || "Order failed" });
+      console.error("Razorpay order request failed", {
+        status: response.status,
+        body: data,
+      });
+      res.status(response.status).json({
+        ok: false,
+        error:
+          data?.error?.description ||
+          data?.error?.reason ||
+          data?.error?.code ||
+          data?.raw ||
+          "Order failed",
+      });
       return;
     }
 

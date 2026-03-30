@@ -585,26 +585,27 @@ export default function PricingSection() {
 
   const renderGatewayButtons = (purpose, highlightedPurpose) => (
     <div className="mt-3 flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={() => handleCheckout(purpose, "razorpay")}
-          disabled={!canShowCheckout || isGatewayBusy}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1 ${highlightedCard === highlightedPurpose ? "animate-pulseSoft" : ""}`}
-        >
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
-              <path d="M5 4h10a4 4 0 0 1 0 8H9v8H5V4Zm4 4h6a2 2 0 1 0 0-4H9v4Z" />
-            </svg>
-          </span>
-          {canShowCheckout ? "Pay via Razorpay" : "Checkout Locked"}
-        </button>
-        {inferredRegion !== "IN" && (
+      <div className="flex flex-col gap-3">
+        {inferredRegion === "IN" ? (
+          <button
+            type="button"
+            onClick={() => handleCheckout(purpose, "razorpay")}
+            disabled={!canShowCheckout || isGatewayBusy}
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${highlightedCard === highlightedPurpose ? "animate-pulseSoft" : ""}`}
+          >
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+                <path d="M5 4h10a4 4 0 0 1 0 8H9v8H5V4Zm4 4h6a2 2 0 1 0 0-4H9v4Z" />
+              </svg>
+            </span>
+            {canShowCheckout ? "Pay via Razorpay" : "Checkout Locked"}
+          </button>
+        ) : (
           <button
             type="button"
             onClick={() => handleCheckout(purpose, "paypal")}
             disabled={!canShowCheckout || isGatewayBusy}
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1 ${highlightedCard === highlightedPurpose ? "animate-pulseSoft" : ""}`}
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 ${highlightedCard === highlightedPurpose ? "animate-pulseSoft" : ""}`}
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
               <path d="M7.34 4.65h5.51c2.58 0 4.07 1.62 3.66 3.92-.45 2.52-2.41 3.96-5.23 3.96H9.36l-.69 4.38H5.62L7.34 4.65Zm2.45 5.51h1.53c1.46 0 2.33-.6 2.55-1.82.2-1.13-.44-1.75-1.86-1.75H9.98l-.19 1.23Zm6.38-.7h2.62l-.28 1.59h.04c.64-1.08 1.63-1.84 3.01-1.84.18 0 .45.02.61.06l-.47 2.65a2.84 2.84 0 0 0-.87-.1c-1.92 0-2.8 1.18-3.1 2.89l-.65 3.73h-2.73l1.82-10.98Zm-8.95 0h2.74L8.15 20.35H5.41L7.22 9.46Z" />
