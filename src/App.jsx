@@ -23,10 +23,10 @@ const programData = [
 ];
 
 const trustItems = [
-  "Small Batches (15 Students)",
-  "Personalized Training",
-  "Real Projects",
-  "Certificate",
+  "15-student live batches",
+  "Session link sent on email after payment",
+  "Beginner-friendly for ages 11-18",
+  "Real academic and project use cases",
 ];
 
 const faqs = [
@@ -134,6 +134,12 @@ export default function App() {
 
         <section className="reveal-on-scroll px-4 py-4 md:px-6" aria-label="Trust highlights">
           <div className="editorial-panel mx-auto max-w-6xl rounded-[2rem] p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="section-kicker">Why parents convert quickly</span>
+                <p className="text-sm text-slate-600">Clarity, small batch size, and a direct post-payment confirmation flow.</p>
+              </div>
+            </div>
             <ul className="grid gap-3 text-sm font-medium text-slate-800 sm:grid-cols-2 lg:grid-cols-4">
               {trustItems.map((item) => (
                 <li key={item} className="flex items-center gap-2">

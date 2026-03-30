@@ -189,6 +189,32 @@ export default function Hero() {
             <span className="font-semibold text-slate-900">Kraft Academy</span> helps students use AI for smarter study workflows, better revision, and practical future-ready skills without overwhelm.
           </p>
 
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="#india-demo-classes"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new Event("ka-demo-focus"));
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800"
+            >
+              Reserve Rs 99 Group Workshop
+            </a>
+            <a
+              href="#workshop-form"
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white/90 px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white"
+            >
+              Book 1:1 / Global Demo
+            </a>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-700">
+            <span className="rounded-full bg-white/85 px-3 py-1 shadow-sm ring-1 ring-slate-200">Beginner-friendly</span>
+            <span className="rounded-full bg-white/85 px-3 py-1 shadow-sm ring-1 ring-slate-200">English / Hindi</span>
+            <span className="rounded-full bg-white/85 px-3 py-1 shadow-sm ring-1 ring-slate-200">Email confirmation after payment</span>
+          </div>
+
           <div className="mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
             <div className="editorial-panel rounded-[1.35rem] px-4 py-4">
               <p className="text-2xl font-extrabold tracking-[-0.04em] text-slate-950">11-18</p>
@@ -228,6 +254,11 @@ export default function Hero() {
               Pick one of the live India workshop slots below and continue straight to the Rs 99 checkout.
             </p>
             <p className="mt-2 text-xs font-medium text-slate-600">Enter name, email, and a valid Indian contact number to unlock these workshop slots.</p>
+            <div className="mt-3 grid gap-2 text-xs font-medium text-slate-700 sm:grid-cols-3">
+              <div className="rounded-2xl border border-amber-200 bg-white/80 px-3 py-2">1. Choose a live workshop slot</div>
+              <div className="rounded-2xl border border-amber-200 bg-white/80 px-3 py-2">2. Complete payment via Razorpay or PayPal</div>
+              <div className="rounded-2xl border border-amber-200 bg-white/80 px-3 py-2">3. Get confirmation and session link by email</div>
+            </div>
 
             <div className="mt-5 grid gap-3 xl:grid-cols-3">
               <input
@@ -344,6 +375,7 @@ export default function Hero() {
                 </svg>
                 Global students or 1:1 demo? Book your preferred timing here.
               </a>
+              <p className="text-xs text-slate-500">Parents usually use the group workshop for a fast first session, and the 1:1 / global route when they want a custom timing.</p>
             </div>
           </div>
         </div>
