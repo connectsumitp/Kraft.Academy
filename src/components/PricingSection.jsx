@@ -137,6 +137,63 @@ function getRegionFromContact(contact) {
   return "";
 }
 
+function hasStoredCheckoutAccess() {
+  if (typeof window === "undefined") return false;
+
+  const flow = window.localStorage.getItem("ka_checkout_flow") || "";
+  const contact = window.localStorage.getItem("ka_contact") || "";
+  const date = window.localStorage.getItem("ka_date") || "";
+  const timing = window.localStorage.getItem("ka_timing") || "";
+  const program = window.localStorage.getItem("ka_program") || "";
+  const demoSlot = window.localStorage.getItem("ka_demo_slot") || "";
+  const workshopSlotKey = window.localStorage.getItem("ka_workshop_slot_key") || "";
+
+  if (!flow || !contact || !isValidPhoneNumber(contact)) {
+    return false;
+  }
+
+  if (flow === "program") {
+    return Boolean(program && timing);
+  }
+
+  if (flow === "workshop") {
+    if (demoSlot || workshopSlotKey) {
+      return Boolean(date && timing && getCountryFromPhone(contact) === "IN");
+    }
+    return Boolean(date && timing);
+  }
+
+  return false;
+}
+
+function getStoredCheckoutSnapshot() {
+  if (typeof window === "undefined") {
+    return {
+      country: "",
+      contact: "",
+      demoSlot: "",
+      workshopSlotKey: "",
+      paymentRegion: "GLOBAL",
+      checkoutReady: false,
+    };
+  }
+
+  const storedCountry = window.localStorage.getItem("ka_country") || "";
+  const storedContact = window.localStorage.getItem("ka_contact") || "";
+  const storedDemoSlot = window.localStorage.getItem("ka_demo_slot") || "";
+  const storedWorkshopSlotKey = window.localStorage.getItem("ka_workshop_slot_key") || "";
+  const inferred = getCountryFromPhone(storedContact) || storedCountry;
+
+  return {
+    country: inferred || storedCountry,
+    contact: storedContact,
+    demoSlot: storedDemoSlot,
+    workshopSlotKey: storedWorkshopSlotKey,
+    paymentRegion: inferred === "IN" ? "IN" : inferred ? "GLOBAL" : storedCountry === "IN" ? "IN" : "GLOBAL",
+    checkoutReady: hasStoredCheckoutAccess(),
+  };
+}
+
 export default function PricingSection() {
   const [country, setCountry] = useState("");
   const [contact, setContact] = useState("");
@@ -155,45 +212,26 @@ export default function PricingSection() {
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
-    const hydrate = () => {
-      const storedCountry = window.localStorage.getItem("ka_country") || "";
-      const storedContact = window.localStorage.getItem("ka_contact") || "";
-      const storedDemoSlot = window.localStorage.getItem("ka_demo_slot") || "";
-      const storedWorkshopSlotKey = window.localStorage.getItem("ka_workshop_slot_key") || "";
-      setCountry(storedCountry);
-      setContact(storedContact);
-      setDemoSlot(storedDemoSlot);
-      setWorkshopSlotKey(storedWorkshopSlotKey);
-      if (storedCountry) {
-        setPaymentRegion(storedCountry === "IN" ? "IN" : "GLOBAL");
+    const syncFromStorage = () => {
+      const snapshot = getStoredCheckoutSnapshot();
+      setCountry(snapshot.country);
+      setContact(snapshot.contact);
+      setDemoSlot(snapshot.demoSlot);
+      setWorkshopSlotKey(snapshot.workshopSlotKey);
+      setPaymentRegion(snapshot.paymentRegion);
+      setCheckoutReady(snapshot.checkoutReady);
+      if (!snapshot.checkoutReady) {
+        window.localStorage.removeItem("ka_checkout_flow");
       }
     };
 
-    hydrate();
+    syncFromStorage();
 
-    const onCountryChange = () => {
-      const updated = window.localStorage.getItem("ka_country") || "";
-      setCountry(updated);
-      setCheckoutReady(false);
-      if (updated) {
-        setPaymentRegion(updated === "IN" ? "IN" : "GLOBAL");
-      }
-    };
-
-    const onContactChange = () => {
-      const updatedContact = window.localStorage.getItem("ka_contact") || "";
-      setContact(updatedContact);
-      setCheckoutReady(false);
-      const inferred = getCountryFromPhone(updatedContact);
-      if (inferred) {
-        setCountry(inferred);
-        setPaymentRegion(inferred === "IN" ? "IN" : "GLOBAL");
-      }
-    };
-
-    const onDemoSlotChange = () => setDemoSlot(window.localStorage.getItem("ka_demo_slot") || "");
-    const onWorkshopSlotKeyChange = () => setWorkshopSlotKey(window.localStorage.getItem("ka_workshop_slot_key") || "");
-    const onCheckoutReady = () => setCheckoutReady(true);
+    const onCountryChange = () => syncFromStorage();
+    const onContactChange = () => syncFromStorage();
+    const onDemoSlotChange = () => syncFromStorage();
+    const onWorkshopSlotKeyChange = () => syncFromStorage();
+    const onCheckoutReady = () => syncFromStorage();
 
     window.addEventListener("ka-country-change", onCountryChange);
     window.addEventListener("ka-contact-change", onContactChange);

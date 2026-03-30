@@ -145,6 +145,7 @@ export default function LeadForm() {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("ka_demo_slot");
         window.localStorage.removeItem("ka_workshop_slot_key");
+        window.localStorage.setItem("ka_checkout_flow", "program");
         window.dispatchEvent(new Event("ka-demo-slot-change"));
         window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
         window.dispatchEvent(new Event("ka-checkout-ready"));

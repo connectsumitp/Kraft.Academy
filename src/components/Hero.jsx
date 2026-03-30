@@ -122,6 +122,7 @@ export default function Hero() {
       window.localStorage.removeItem("ka_program");
       window.localStorage.setItem("ka_demo_slot", selectedSlotLabel);
       window.localStorage.setItem("ka_workshop_slot_key", slot.slotKey);
+      window.localStorage.setItem("ka_checkout_flow", "workshop");
       window.dispatchEvent(new Event("ka-contact-change"));
       window.dispatchEvent(new Event("ka-country-change"));
       window.dispatchEvent(new Event("ka-date-change"));
