@@ -28,7 +28,13 @@ async function getPayPalAccessToken(clientId, clientSecret) {
       status: response.status,
       body: data,
     });
-    throw new Error(data?.error_description || data?.error || "Could not fetch PayPal access token.");
+    const errorParts = [
+      data?.error_description,
+      data?.error,
+      data?.message,
+      data?.details && Array.isArray(data.details) ? data.details.map((detail) => detail?.issue || detail?.description).filter(Boolean).join(", ") : "",
+    ].filter(Boolean);
+    throw new Error(errorParts.join(" | ") || "Could not fetch PayPal access token.");
   }
 
   return data.access_token;
