@@ -256,7 +256,7 @@ export function getWorkshopGroupSlots(blockedItems = []) {
   return getUpcomingWorkshopDays().map((day) => ({
     ...day,
     slots: WORKSHOP_SLOT_HOURS
-      .filter((hour) => !isDateBlocked(blockedItems, "workshop", day.isoDate))
+      .filter(() => !isDateBlocked(blockedItems, "workshop", day.isoDate))
       .filter((hour) => !getBlockedHours(blockedItems, "workshop", day.isoDate).has(hour))
       .map((hour) => {
         const startUtc = buildUtcFromIst(day.isoDate, hour, 0);
@@ -306,7 +306,7 @@ export function getProgramTimingOptions(countryCode, blockedItems = []) {
 
   const zones = getTimeZonesForCountry(countryCode);
   const options = [];
-  const weekendDates = getUpcomingDatesForWeekdays(PROGRAM_WEEKDAY_SET, 2);
+  const weekendDates = getUpcomingDatesForWeekdays(PROGRAM_WEEKDAY_SET, 6);
 
   weekendDates.forEach((day) => {
     if (isDateBlocked(blockedItems, "program", day.isoDate)) return;

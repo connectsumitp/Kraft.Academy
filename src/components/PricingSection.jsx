@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { confirmWorkshopSeat } from "../lib/workshopSeats";
+import { getCountryFromPhone } from "../lib/phoneCountry";
 
 const fallbackRates = {
   INR: 1,
@@ -25,16 +26,6 @@ const countryCurrencyMap = {
   AU: "AUD",
   NZ: "NZD",
 };
-const dialCodeMap = [
-  { code: "+1", countries: ["US", "CA"] },
-  { code: "+44", countries: ["GB"] },
-  { code: "+971", countries: ["AE"] },
-  { code: "+65", countries: ["SG"] },
-  { code: "+61", countries: ["AU"] },
-  { code: "+64", countries: ["NZ"] },
-  { code: "+91", countries: ["IN"] },
-];
-
 function getCurrencyForCountry(countryCode) {
   if (!countryCode) return "USD";
   if (countryCurrencyMap[countryCode]) return countryCurrencyMap[countryCode];
@@ -137,12 +128,6 @@ async function sendConfirmationEmail(emailScriptUrl, purpose) {
       program: lead.program,
     }),
   });
-}
-
-function getCountryFromPhone(value) {
-  if (!value || typeof value !== "string") return "";
-  const match = dialCodeMap.find((entry) => value.startsWith(entry.code));
-  return match ? match.countries[0] : "";
 }
 
 function getRegionFromContact(contact) {

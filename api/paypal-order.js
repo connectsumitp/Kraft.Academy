@@ -15,8 +15,19 @@ async function getPayPalAccessToken(clientId, clientSecret) {
     body: "grant_type=client_credentials",
   });
 
-  const data = await response.json();
+  const rawText = await response.text();
+  let data = {};
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    data = { raw: rawText };
+  }
+
   if (!response.ok || !data?.access_token) {
+    console.error("PayPal access token request failed", {
+      status: response.status,
+      body: data,
+    });
     throw new Error(data?.error_description || data?.error || "Could not fetch PayPal access token.");
   }
 

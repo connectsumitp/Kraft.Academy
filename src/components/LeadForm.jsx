@@ -2,6 +2,7 @@
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import { getProgramTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 import { fetchAvailability } from "../lib/availability";
+import { getCountryFromPhone } from "../lib/phoneCountry";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -14,22 +15,6 @@ const localeCountryMap = {
   "en-IE": "IE",
   "en-NZ": "NZ",
 };
-
-const dialCodeMap = [
-  { code: "+1", countries: ["US", "CA"] },
-  { code: "+44", countries: ["GB"] },
-  { code: "+971", countries: ["AE"] },
-  { code: "+65", countries: ["SG"] },
-  { code: "+61", countries: ["AU"] },
-  { code: "+64", countries: ["NZ"] },
-  { code: "+91", countries: ["IN"] },
-];
-
-function getCountryFromPhone(value) {
-  if (!value || typeof value !== "string") return "";
-  const match = dialCodeMap.find((entry) => value.startsWith(entry.code));
-  return match ? match.countries[0] : "";
-}
 
 function getDefaultCountry() {
   if (typeof navigator === "undefined") return "US";
