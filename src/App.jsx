@@ -136,8 +136,8 @@ export default function App() {
           <div className="editorial-panel mx-auto max-w-6xl rounded-[2rem] p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <span className="section-kicker">Why parents convert quickly</span>
-                <p className="text-sm text-slate-600">Clarity, small batch size, and a direct post-payment confirmation flow.</p>
+                <span className="section-kicker">Why students love this program</span>
+                <p className="text-sm text-slate-600">Live guidance, practical AI use, and a learning flow students can actually apply in school work and projects.</p>
               </div>
             </div>
             <ul className="grid gap-3 text-sm font-medium text-slate-800 sm:grid-cols-2 lg:grid-cols-4">
@@ -195,7 +195,7 @@ export default function App() {
                 <span className="section-kicker">Why parents trust the instructor</span>
                 <h3 className="text-xl font-bold text-slate-900">Instructor Credentials</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                  Sumit Pandey. Product Manager. 5 Years of Industrial Experience. AI Instructor.
+                  Sumit Pandey. Product Manager. 8 Years of Industrial Experience. AI Instructor.
                 </p>
                 <p className="mt-3 text-sm text-slate-600">
                   Students learn from an instructor with hands-on product and AI experience, with a focus on practical
@@ -205,12 +205,12 @@ export default function App() {
                   href="https://linkedin.com/in/sumitpandey1996"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-800 hover:underline"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0A66C2] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0958a8]"
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
                     <path d="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19M8.34 17V10.97H6.33V17H8.34M7.34 10.12A1.17 1.17 0 1 0 7.34 7.78A1.17 1.17 0 0 0 7.34 10.12M17.67 17V13.35C17.67 11.4 16.63 10.49 15.24 10.49C14.11 10.49 13.6 11.11 13.32 11.55V10.97H11.31V17H13.32V13.64C13.32 12.75 13.49 11.9 14.6 11.9C15.69 11.9 15.7 12.91 15.7 13.7V17H17.67Z" />
                   </svg>
-                  linkedin.com/in/sumitpandey1996
+                  View LinkedIn Profile
                 </a>
               </div>
             </div>

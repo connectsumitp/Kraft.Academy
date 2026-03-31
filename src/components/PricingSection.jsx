@@ -137,6 +137,11 @@ function getRegionFromContact(contact) {
   return "";
 }
 
+function hasSessionCheckoutReady() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem("ka_checkout_session_ready") === "1";
+}
+
 function hasStoredCheckoutAccess() {
   if (typeof window === "undefined") return false;
 
@@ -183,14 +188,15 @@ function getStoredCheckoutSnapshot() {
   const storedDemoSlot = window.localStorage.getItem("ka_demo_slot") || "";
   const storedWorkshopSlotKey = window.localStorage.getItem("ka_workshop_slot_key") || "";
   const inferred = getCountryFromPhone(storedContact) || storedCountry;
+  const sessionReady = hasSessionCheckoutReady();
 
   return {
-    country: inferred || storedCountry,
-    contact: storedContact,
-    demoSlot: storedDemoSlot,
-    workshopSlotKey: storedWorkshopSlotKey,
+    country: sessionReady ? inferred || storedCountry : "",
+    contact: sessionReady ? storedContact : "",
+    demoSlot: sessionReady ? storedDemoSlot : "",
+    workshopSlotKey: sessionReady ? storedWorkshopSlotKey : "",
     paymentRegion: inferred === "IN" ? "IN" : inferred ? "GLOBAL" : storedCountry === "IN" ? "IN" : "GLOBAL",
-    checkoutReady: hasStoredCheckoutAccess(),
+    checkoutReady: sessionReady && hasStoredCheckoutAccess(),
   };
 }
 
@@ -225,24 +231,38 @@ export default function PricingSection() {
       }
     };
 
+    const clearSessionAndSync = () => {
+      window.sessionStorage.removeItem("ka_checkout_session_ready");
+      syncFromStorage();
+    };
+
     syncFromStorage();
 
-    const onCountryChange = () => syncFromStorage();
-    const onContactChange = () => syncFromStorage();
-    const onDemoSlotChange = () => syncFromStorage();
-    const onWorkshopSlotKeyChange = () => syncFromStorage();
-    const onCheckoutReady = () => syncFromStorage();
+    const onCountryChange = () => clearSessionAndSync();
+    const onContactChange = () => clearSessionAndSync();
+    const onDateChange = () => clearSessionAndSync();
+    const onDemoSlotChange = () => clearSessionAndSync();
+    const onWorkshopSlotKeyChange = () => clearSessionAndSync();
+    const onBookingInputChange = () => clearSessionAndSync();
+    const onCheckoutReady = () => {
+      window.sessionStorage.setItem("ka_checkout_session_ready", "1");
+      syncFromStorage();
+    };
 
     window.addEventListener("ka-country-change", onCountryChange);
     window.addEventListener("ka-contact-change", onContactChange);
+    window.addEventListener("ka-date-change", onDateChange);
     window.addEventListener("ka-demo-slot-change", onDemoSlotChange);
     window.addEventListener("ka-workshop-slot-key-change", onWorkshopSlotKeyChange);
+    window.addEventListener("ka-booking-input-change", onBookingInputChange);
     window.addEventListener("ka-checkout-ready", onCheckoutReady);
     return () => {
       window.removeEventListener("ka-country-change", onCountryChange);
       window.removeEventListener("ka-contact-change", onContactChange);
+      window.removeEventListener("ka-date-change", onDateChange);
       window.removeEventListener("ka-demo-slot-change", onDemoSlotChange);
       window.removeEventListener("ka-workshop-slot-key-change", onWorkshopSlotKeyChange);
+      window.removeEventListener("ka-booking-input-change", onBookingInputChange);
       window.removeEventListener("ka-checkout-ready", onCheckoutReady);
     };
   }, []);
@@ -313,6 +333,10 @@ export default function PricingSection() {
     : !checkoutReady
       ? "Submit one of the booking flows above and the correct payment path will unlock here."
       : `Checkout is unlocked. ${recommendedGateway} is the most reliable option for this booking right now.`;
+  const lockedWorkshopHint = demoSlot
+    ? "Choose this India workshop route with a valid Indian contact number to reveal the Rs 99 payment."
+    : "Complete either the group workshop or 1:1 / global demo booking above to reveal your workshop payment.";
+  const lockedProgramHint = "Open the program enrollment section, add your details, and continue to reveal the program payment.";
 
   useEffect(() => {
     if (contactRegion) {
@@ -702,6 +726,12 @@ export default function PricingSection() {
               <p className="mt-1 text-sm text-slate-700">
                 {canShowCheckout ? `Pay ${pricingInfo.label}` : "Complete a workshop booking above to unlock this checkout"}
               </p>
+              {!canShowCheckout && (
+                <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Locked until booking is confirmed</p>
+                  <p className="mt-1 text-sm text-slate-600">{lockedWorkshopHint}</p>
+                </div>
+              )}
               {canShowCheckout && inferredRegion === "GLOBAL" && (
                 <p className="mt-1 text-xs text-slate-500">~{formatMoney(pricingInfo.raw, displayCurrency)} for {pricingInfo.baseInr} INR.</p>
               )}
@@ -729,6 +759,12 @@ export default function PricingSection() {
               <p className="mt-1 text-sm text-slate-700">
                 {canShowCheckout ? `Pay ${programPricing.label}` : "Complete a program booking above to unlock this checkout"}
               </p>
+              {!canShowCheckout && (
+                <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Locked until enrollment details are saved</p>
+                  <p className="mt-1 text-sm text-slate-600">{lockedProgramHint}</p>
+                </div>
+              )}
               {canShowCheckout && inferredRegion === "GLOBAL" && programPricing.baseInr && (
                 <p className="mt-1 text-xs text-slate-500">~{formatMoney(programPricing.raw, displayCurrency)} for {programPricing.baseInr} INR.</p>
               )}

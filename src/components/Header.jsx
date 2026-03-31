@@ -53,7 +53,7 @@ export default function Header() {
               onClick={handleReserveClick}
               className="inline-flex max-w-[10.5rem] items-center justify-center text-center leading-tight rounded-xl bg-amber-400 px-3 py-2 text-[11px] font-extrabold text-slate-900 shadow-lg shadow-amber-300/40 ring-2 ring-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-300 lg:max-w-none lg:px-4 lg:text-sm"
             >
-              Reserve seats for your child
+              Book a seat now
             </a>
           </li>
         </ul>
@@ -82,7 +82,7 @@ export default function Header() {
                   setOpen(false);
                 }}
               >
-                Reserve seats for your child
+                Book a seat now
               </a>
             </li>
           </ul>

@@ -90,17 +90,40 @@ export default function LeadForm() {
     }
   }, [defaultCountry, form.country, geoCountry]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const onProgramFocus = (event) => {
+      const nextProgram = event?.detail?.program || "AI Future Skills";
+      setIsExpanded(true);
+      setForm((prev) => ({ ...prev, program: nextProgram }));
+      window.localStorage.setItem("ka_program", nextProgram);
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById("program-enrollment-panel");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    };
+
+    window.addEventListener("ka-program-focus", onProgramFocus);
+    return () => window.removeEventListener("ka-program-focus", onProgramFocus);
+  }, []);
+
   const onChange = (event) => {
     const { name, value } = event.target;
 
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
+      window.dispatchEvent(new Event("ka-booking-input-change"));
     }
     if (name === "program" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_program", value);
+      window.dispatchEvent(new Event("ka-booking-input-change"));
     }
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
+      window.dispatchEvent(new Event("ka-booking-input-change"));
     }
 
     setForm((prev) => ({
@@ -214,8 +237,14 @@ export default function LeadForm() {
           </button>
         </div>
 
-        {isExpanded && (
-          <form id="program-enrollment-panel" className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
+        <div
+          id="program-enrollment-panel"
+          className={`overflow-hidden transition-all duration-500 ease-out ${
+            isExpanded ? "mt-6 max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+          aria-hidden={!isExpanded}
+        >
+          <form className="grid gap-4 pb-1" onSubmit={onSubmit} noValidate>
             <p className="text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
             <div>
@@ -258,6 +287,7 @@ export default function LeadForm() {
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
                     window.dispatchEvent(new Event("ka-contact-change"));
+                    window.dispatchEvent(new Event("ka-booking-input-change"));
                     if (inferred && inferred !== form.country) {
                       window.localStorage.setItem("ka_country", inferred);
                       window.localStorage.removeItem("ka_timing");
@@ -276,6 +306,7 @@ export default function LeadForm() {
                     if (typeof window !== "undefined") {
                       window.localStorage.setItem("ka_country", nextCountry);
                       window.dispatchEvent(new Event("ka-country-change"));
+                      window.dispatchEvent(new Event("ka-booking-input-change"));
                     }
                   }
                 }}
@@ -390,7 +421,7 @@ export default function LeadForm() {
               {submitting ? "Saving Details..." : "Continue to Program Checkout"}
             </button>
           </form>
-        )}
+        </div>
       </div>
     </section>
   );

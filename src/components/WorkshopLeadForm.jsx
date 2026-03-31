@@ -150,6 +150,7 @@ export default function WorkshopLeadForm() {
 
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
+      window.dispatchEvent(new Event("ka-booking-input-change"));
     }
     if (name === "date" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_date", value);
@@ -158,6 +159,7 @@ export default function WorkshopLeadForm() {
     }
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
+      window.dispatchEvent(new Event("ka-booking-input-change"));
     }
 
     setForm((prev) => ({
@@ -258,8 +260,8 @@ export default function WorkshopLeadForm() {
           <p className="mt-2 text-sm text-slate-700">
             Choose a preferred 1:1 demo slot for India or any international demo booking for the next 7 days.
           </p>
-          <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-slate-900">
-            India 1:1 demo: Rs 499 · Global demo: local equivalent of 1000 INR
+          <p className="mt-2 text-xs font-medium text-slate-600">
+            Pricing appears at checkout after you enter your details and booking route.
           </p>
           <p className="mt-3 text-xs font-semibold text-emerald-700">
             Preferred bookings are available for the next 7 days only, from 10 AM IST to 12 midnight IST. Friday, Saturday, and Sunday exclude 7-8 PM IST and 8-9 PM IST.
@@ -308,6 +310,7 @@ export default function WorkshopLeadForm() {
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
                     window.dispatchEvent(new Event("ka-contact-change"));
+                    window.dispatchEvent(new Event("ka-booking-input-change"));
                     if (inferred && inferred !== form.country) {
                       window.localStorage.setItem("ka_country", inferred);
                       window.localStorage.removeItem("ka_timing");
@@ -327,6 +330,7 @@ export default function WorkshopLeadForm() {
                     if (typeof window !== "undefined") {
                       window.localStorage.setItem("ka_country", nextCountry);
                       window.dispatchEvent(new Event("ka-country-change"));
+                      window.dispatchEvent(new Event("ka-booking-input-change"));
                     }
                   }
                 }}
