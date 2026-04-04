@@ -156,6 +156,7 @@ export default function Hero() {
           contact: demoForm.contact,
           demoSlot: selectedSlotLabel,
           workshopSlotKey: slot.slotKey,
+          updatedAt: Date.now(),
         })
       );
       window.sessionStorage.setItem("ka_checkout_session_ready", "1");

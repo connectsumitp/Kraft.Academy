@@ -38,6 +38,10 @@ function formatDisplayDate(isoDate) {
   }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
 }
 
+function normalizeCountryCode(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
 const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
 
 export default function WorkshopLeadForm() {
@@ -57,14 +61,18 @@ export default function WorkshopLeadForm() {
   const [geoCountry, setGeoCountry] = useState("");
   const [availabilityItems, setAvailabilityItems] = useState([]);
 
-  const isContactValid = useMemo(() => (form.contact ? isAcceptableContactNumber(form.contact) : false), [form.contact]);
-  const timingOptions = useMemo(
-    () => getPreferredTimingOptions(form.country, form.date, availabilityItems),
-    [form.country, form.date, availabilityItems]
-  );
-  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, form.date, "preferred"), [form.country, form.date]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
+  const isContactValid = useMemo(() => (form.contact ? isAcceptableContactNumber(form.contact) : false), [form.contact]);
+  const effectiveCountry = useMemo(
+    () => normalizeCountryCode(form.country) || normalizeCountryCode(getCountryFromPhone(form.contact)) || normalizeCountryCode(resolvedDefaultCountry) || "US",
+    [form.contact, form.country, resolvedDefaultCountry]
+  );
+  const timingOptions = useMemo(
+    () => getPreferredTimingOptions(effectiveCountry, form.date, availabilityItems),
+    [effectiveCountry, form.date, availabilityItems]
+  );
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(effectiveCountry, form.date, "preferred"), [effectiveCountry, form.date]);
   const preferredBounds = useMemo(() => getPreferredDateBounds(), []);
   const availableDateOptions = useMemo(() => {
     const options = [];
@@ -72,14 +80,14 @@ export default function WorkshopLeadForm() {
       const isoDate = addDaysToIsoDate(preferredBounds.min, offset);
       if (isoDate > preferredBounds.max) continue;
       if (isAvailabilityDateBlocked("preferred", isoDate, availabilityItems)) continue;
-      if (form.country && getPreferredTimingOptions(form.country, isoDate, availabilityItems).length === 0) continue;
+      if (effectiveCountry && getPreferredTimingOptions(effectiveCountry, isoDate, availabilityItems).length === 0) continue;
       options.push({
         value: isoDate,
         label: formatDisplayDate(isoDate),
       });
     }
     return options;
-  }, [availabilityItems, form.country, preferredBounds]);
+  }, [availabilityItems, effectiveCountry, preferredBounds]);
 
   useEffect(() => {
     let active = true;
@@ -178,7 +186,8 @@ export default function WorkshopLeadForm() {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.age || !form.country || !form.date || !form.timing || !form.email || !isContactValid) {
+    if (!form.name || !form.age || !effectiveCountry || !form.date || !form.timing || !form.email || !isContactValid) {
+      setSubmitMessage("Please complete all required booking details before continuing to checkout.");
       return;
     }
 
@@ -195,7 +204,7 @@ export default function WorkshopLeadForm() {
         contact: form.contact,
         email: form.email,
         age: form.age,
-        country: form.country,
+        country: effectiveCountry,
         date: form.date,
         timing: form.timing,
         program: "",
@@ -210,7 +219,7 @@ export default function WorkshopLeadForm() {
         window.localStorage.setItem("ka_contact", form.contact);
         window.localStorage.setItem("ka_email", form.email);
         window.localStorage.setItem("ka_age", form.age);
-        window.localStorage.setItem("ka_country", form.country);
+        window.localStorage.setItem("ka_country", effectiveCountry);
         window.localStorage.setItem("ka_date", form.date);
         window.localStorage.setItem("ka_timing", form.timing);
         window.localStorage.removeItem("ka_demo_slot");
@@ -221,10 +230,11 @@ export default function WorkshopLeadForm() {
           JSON.stringify({
             ready: true,
             flow: "workshop",
-            country: form.country,
+            country: effectiveCountry,
             contact: form.contact,
             demoSlot: "",
             workshopSlotKey: "",
+            updatedAt: Date.now(),
           })
         );
         window.sessionStorage.setItem("ka_checkout_session_ready", "1");
@@ -232,7 +242,7 @@ export default function WorkshopLeadForm() {
           new CustomEvent("ka-checkout-snapshot", {
             detail: {
               flow: "workshop",
-              country: form.country,
+              country: effectiveCountry,
               contact: form.contact,
               demoSlot: "",
               workshopSlotKey: "",
@@ -266,15 +276,15 @@ export default function WorkshopLeadForm() {
         setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
       });
 
-      setForm((prev) => ({
-        name: "",
-        contact: "",
-        email: "",
-        age: "",
-        country: prev.country,
-        date: "",
-        timing: "",
-      }));
+        setForm((prev) => ({
+          name: "",
+          contact: "",
+          email: "",
+          age: "",
+          country: effectiveCountry,
+          date: "",
+          timing: "",
+        }));
       setTouched(false);
       setShowSuccess(true);
     } catch {
@@ -333,7 +343,7 @@ export default function WorkshopLeadForm() {
                 value={form.contact}
                 onChange={(value) => {
                   const next = value || "";
-                  const inferred = getCountryFromPhone(next);
+                  const inferred = normalizeCountryCode(getCountryFromPhone(next));
                   setForm((prev) => ({
                     ...prev,
                     contact: next,
@@ -452,10 +462,10 @@ export default function WorkshopLeadForm() {
                 onChange={onChange}
                 aria-label="Timing"
                 required
-                disabled={!isContactValid || !form.country || !form.date}
+                disabled={!isContactValid || !effectiveCountry || !form.date}
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100 md:h-9 md:py-1"
               >
-                <option value="">{isContactValid && form.country && form.date ? "Select Timing" : "Select Valid Contact and Date First"}</option>
+                <option value="">{isContactValid && effectiveCountry && form.date ? "Select Timing" : "Select Valid Contact and Date First"}</option>
                 {timingOptions.map((timing) => (
                   <option key={timing} value={timing}>
                     {timing}

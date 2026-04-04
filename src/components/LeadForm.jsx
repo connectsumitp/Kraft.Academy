@@ -25,6 +25,10 @@ function getDefaultCountry() {
 const programs = ["AI Future Skills", "Coding Bootcamp"];
 const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
 
+function normalizeCountryCode(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
 export default function LeadForm() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [form, setForm] = useState({
@@ -43,10 +47,14 @@ export default function LeadForm() {
   const [availabilityItems, setAvailabilityItems] = useState([]);
 
   const isContactValid = useMemo(() => (form.contact ? isAcceptableContactNumber(form.contact) : false), [form.contact]);
-  const timingOptions = useMemo(() => getProgramTimingOptions(form.country, availabilityItems), [form.country, availabilityItems]);
-  const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, "", "program"), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
+  const effectiveCountry = useMemo(
+    () => normalizeCountryCode(form.country) || normalizeCountryCode(getCountryFromPhone(form.contact)) || normalizeCountryCode(resolvedDefaultCountry) || "US",
+    [form.contact, form.country, resolvedDefaultCountry]
+  );
+  const timingOptions = useMemo(() => getProgramTimingOptions(effectiveCountry, availabilityItems), [effectiveCountry, availabilityItems]);
+  const timingLabel = useMemo(() => getTimingTimezoneLabel(effectiveCountry, "", "program"), [effectiveCountry]);
 
   useEffect(() => {
     let active = true;
@@ -139,7 +147,8 @@ export default function LeadForm() {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.age || !form.country || !form.program || !form.timing || !form.email || !isContactValid) {
+    if (!form.name || !form.age || !effectiveCountry || !form.program || !form.timing || !form.email || !isContactValid) {
+      setSubmitMessage("Please complete all required enrollment details before continuing to checkout.");
       return;
     }
 
@@ -156,7 +165,7 @@ export default function LeadForm() {
         contact: form.contact,
         email: form.email,
         age: form.age,
-        country: form.country,
+        country: effectiveCountry,
         date: "",
         program: form.program,
         timing: form.timing,
@@ -171,7 +180,7 @@ export default function LeadForm() {
         window.localStorage.setItem("ka_contact", form.contact);
         window.localStorage.setItem("ka_email", form.email);
         window.localStorage.setItem("ka_age", form.age);
-        window.localStorage.setItem("ka_country", form.country);
+        window.localStorage.setItem("ka_country", effectiveCountry);
         window.localStorage.setItem("ka_program", form.program);
         window.localStorage.setItem("ka_timing", form.timing);
         window.localStorage.removeItem("ka_demo_slot");
@@ -182,10 +191,11 @@ export default function LeadForm() {
           JSON.stringify({
             ready: true,
             flow: "program",
-            country: form.country,
+            country: effectiveCountry,
             contact: form.contact,
             demoSlot: "",
             workshopSlotKey: "",
+            updatedAt: Date.now(),
           })
         );
         window.sessionStorage.setItem("ka_checkout_session_ready", "1");
@@ -193,7 +203,7 @@ export default function LeadForm() {
           new CustomEvent("ka-checkout-snapshot", {
             detail: {
               flow: "program",
-              country: form.country,
+              country: effectiveCountry,
               contact: form.contact,
               demoSlot: "",
               workshopSlotKey: "",
@@ -225,15 +235,15 @@ export default function LeadForm() {
         setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
       });
 
-      setForm((prev) => ({
-        name: "",
-        contact: "",
-        email: "",
-        age: "",
-        country: prev.country,
-        program: "",
-        timing: "",
-      }));
+        setForm((prev) => ({
+          name: "",
+          contact: "",
+          email: "",
+          age: "",
+          country: effectiveCountry,
+          program: "",
+          timing: "",
+        }));
       setTouched(false);
     } catch {
       setSubmitMessage("Submission failed. Check Apps Script deployment access and sheet name, then try again.");
@@ -308,7 +318,7 @@ export default function LeadForm() {
                 value={form.contact}
                 onChange={(value) => {
                   const next = value || "";
-                  const inferred = getCountryFromPhone(next);
+                  const inferred = normalizeCountryCode(getCountryFromPhone(next));
                   setForm((prev) => ({
                     ...prev,
                     contact: next,
@@ -422,10 +432,10 @@ export default function LeadForm() {
                 onChange={onChange}
                 aria-label="Select timing"
                 required
-                disabled={!isContactValid || !form.country}
+                disabled={!isContactValid || !effectiveCountry}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 text-slate-900 outline-none ring-offset-2 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-                <option value="">{isContactValid && form.country ? "Select Weekend Timing" : "Select Valid Contact First"}</option>
+                <option value="">{isContactValid && effectiveCountry ? "Select Weekend Timing" : "Select Valid Contact First"}</option>
                 {timingOptions.map((timing) => (
                   <option key={timing} value={timing}>
                     {timing}
@@ -433,7 +443,7 @@ export default function LeadForm() {
                 ))}
               </select>
               <p className="mt-1 text-xs text-slate-500">{timingLabel}</p>
-              {isContactValid && form.country && timingOptions.length === 0 && (
+              {isContactValid && effectiveCountry && timingOptions.length === 0 && (
                 <p className="mt-1 text-xs font-medium text-rose-700">
                   No weekend program timings are available right now for this setup.
                 </p>

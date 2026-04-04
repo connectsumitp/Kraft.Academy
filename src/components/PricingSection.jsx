@@ -27,6 +27,7 @@ const countryCurrencyMap = {
 
 const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
 const CHECKOUT_SESSION_KEY = "ka_checkout_session_ready";
+const SNAPSHOT_MAX_AGE_MS = 1000 * 60 * 90;
 
 function getCurrencyForCountry(countryCode) {
   if (!countryCode) return "USD";
@@ -69,13 +70,8 @@ function getEmptySnapshot() {
   };
 }
 
-function hasSessionCheckoutReady() {
-  if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem(CHECKOUT_SESSION_KEY) === "1";
-}
-
 function readCheckoutSnapshot() {
-  if (typeof window === "undefined" || !hasSessionCheckoutReady()) {
+  if (typeof window === "undefined") {
     return getEmptySnapshot();
   }
 
@@ -85,7 +81,10 @@ function readCheckoutSnapshot() {
   try {
     const parsed = JSON.parse(raw);
     return {
-      ready: Boolean(parsed?.ready),
+      ready:
+        Boolean(parsed?.ready) &&
+        Number.isFinite(Number(parsed?.updatedAt)) &&
+        Date.now() - Number(parsed.updatedAt) <= SNAPSHOT_MAX_AGE_MS,
       flow: parsed?.flow || "",
       country: parsed?.country || "",
       contact: parsed?.contact || "",
@@ -99,7 +98,13 @@ function readCheckoutSnapshot() {
 
 function writeCheckoutSnapshot(snapshot) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(CHECKOUT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  window.localStorage.setItem(
+    CHECKOUT_SNAPSHOT_KEY,
+    JSON.stringify({
+      ...snapshot,
+      updatedAt: Date.now(),
+    })
+  );
   window.sessionStorage.setItem(CHECKOUT_SESSION_KEY, "1");
 }
 
@@ -214,6 +219,7 @@ export default function PricingSection() {
         contact: detail.contact || "",
         demoSlot: detail.demoSlot || "",
         workshopSlotKey: detail.workshopSlotKey || "",
+        updatedAt: Date.now(),
       };
       writeCheckoutSnapshot(nextSnapshot);
       setCheckoutSnapshot(nextSnapshot);
@@ -392,6 +398,11 @@ export default function PricingSection() {
     inferredRegion === "GLOBAL" && paypalWorkshopPricing?.label ? paypalWorkshopPricing.label : pricingInfo.label;
   const programCheckoutLabel =
     inferredRegion === "GLOBAL" && paypalProgramPricing?.label ? paypalProgramPricing.label : programPricing.label;
+  const debugSnapshotLine = `debug: ready=${String(checkoutSnapshot.ready)} flow=${checkoutSnapshot.flow || "none"} country=${
+    checkoutSnapshot.country || "none"
+  } contact=${checkoutSnapshot.contact ? "set" : "empty"} demoSlot=${checkoutSnapshot.demoSlot ? "set" : "empty"} workshopSlotKey=${
+    checkoutSnapshot.workshopSlotKey ? "set" : "empty"
+  }`;
 
   const confirmWorkshopSeatIfNeeded = async (purpose) => {
     if (typeof window === "undefined") return;
@@ -746,6 +757,9 @@ export default function PricingSection() {
               {checkoutStatus}
             </p>
           )}
+          <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-medium text-slate-500">
+            {debugSnapshotLine}
+          </p>
           {!orderScriptUrl && (
             <p className="mt-2 text-xs text-rose-600">Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env to enable Razorpay checkout.</p>
           )}
