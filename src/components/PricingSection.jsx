@@ -243,6 +243,22 @@ export default function PricingSection() {
     const onDemoSlotChange = () => syncFromStorage();
     const onWorkshopSlotKeyChange = () => syncFromStorage();
     const onBookingInputChange = () => clearSessionAndSync();
+    const onCheckoutSnapshot = (event) => {
+      const detail = event?.detail || {};
+      const nextContact = detail.contact || "";
+      const nextCountry = detail.country || getCountryFromPhone(nextContact) || "";
+      const nextDemoSlot = detail.demoSlot || "";
+      const nextWorkshopSlotKey = detail.workshopSlotKey || "";
+      const nextRegion = nextCountry === "IN" ? "IN" : "GLOBAL";
+
+      window.sessionStorage.setItem("ka_checkout_session_ready", "1");
+      setCountry(nextCountry);
+      setContact(nextContact);
+      setDemoSlot(nextDemoSlot);
+      setWorkshopSlotKey(nextWorkshopSlotKey);
+      setPaymentRegion(nextRegion);
+      setCheckoutReady(true);
+    };
     const onCheckoutReady = () => {
       window.sessionStorage.setItem("ka_checkout_session_ready", "1");
       syncFromStorage();
@@ -254,6 +270,7 @@ export default function PricingSection() {
     window.addEventListener("ka-demo-slot-change", onDemoSlotChange);
     window.addEventListener("ka-workshop-slot-key-change", onWorkshopSlotKeyChange);
     window.addEventListener("ka-booking-input-change", onBookingInputChange);
+    window.addEventListener("ka-checkout-snapshot", onCheckoutSnapshot);
     window.addEventListener("ka-checkout-ready", onCheckoutReady);
     return () => {
       window.removeEventListener("ka-country-change", onCountryChange);
@@ -262,6 +279,7 @@ export default function PricingSection() {
       window.removeEventListener("ka-demo-slot-change", onDemoSlotChange);
       window.removeEventListener("ka-workshop-slot-key-change", onWorkshopSlotKeyChange);
       window.removeEventListener("ka-booking-input-change", onBookingInputChange);
+      window.removeEventListener("ka-checkout-snapshot", onCheckoutSnapshot);
       window.removeEventListener("ka-checkout-ready", onCheckoutReady);
     };
   }, []);

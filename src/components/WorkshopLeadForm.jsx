@@ -202,9 +202,27 @@ export default function WorkshopLeadForm() {
       };
 
       if (typeof window !== "undefined") {
+        window.localStorage.setItem("ka_name", form.name);
+        window.localStorage.setItem("ka_contact", form.contact);
+        window.localStorage.setItem("ka_email", form.email);
+        window.localStorage.setItem("ka_age", form.age);
+        window.localStorage.setItem("ka_country", form.country);
+        window.localStorage.setItem("ka_date", form.date);
+        window.localStorage.setItem("ka_timing", form.timing);
         window.localStorage.removeItem("ka_demo_slot");
         window.localStorage.removeItem("ka_workshop_slot_key");
         window.localStorage.setItem("ka_checkout_flow", "workshop");
+        window.sessionStorage.setItem("ka_checkout_session_ready", "1");
+        window.dispatchEvent(
+          new CustomEvent("ka-checkout-snapshot", {
+            detail: {
+              country: form.country,
+              contact: form.contact,
+              demoSlot: "",
+              workshopSlotKey: "",
+            },
+          })
+        );
         window.dispatchEvent(new Event("ka-demo-slot-change"));
         window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
         window.dispatchEvent(new Event("ka-checkout-ready"));

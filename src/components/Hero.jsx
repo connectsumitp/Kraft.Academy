@@ -145,6 +145,17 @@ export default function Hero() {
       window.dispatchEvent(new Event("ka-date-change"));
       window.dispatchEvent(new Event("ka-demo-slot-change"));
       window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
+      window.sessionStorage.setItem("ka_checkout_session_ready", "1");
+      window.dispatchEvent(
+        new CustomEvent("ka-checkout-snapshot", {
+          detail: {
+            country: "IN",
+            contact: demoForm.contact,
+            demoSlot: selectedSlotLabel,
+            workshopSlotKey: slot.slotKey,
+          },
+        })
+      );
       window.dispatchEvent(new Event("ka-checkout-ready"));
     }
 
