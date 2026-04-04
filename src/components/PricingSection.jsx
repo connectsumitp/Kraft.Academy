@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { confirmWorkshopSeat } from "../lib/workshopSeats";
 
 const fallbackRates = {
@@ -204,7 +204,6 @@ async function sendConfirmationEmail(emailScriptUrl, purpose) {
 export default function PricingSection() {
   const [checkoutSnapshot, setCheckoutSnapshot] = useState(getEmptySnapshot);
   const [rates, setRates] = useState(fallbackRates);
-  const [rateSource, setRateSource] = useState("fallback");
   const [checkoutStatus, setCheckoutStatus] = useState("");
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [highlightedCard, setHighlightedCard] = useState("");
@@ -286,12 +285,9 @@ export default function PricingSection() {
         const data = await response.json();
         if (active && data?.rates) {
           setRates((prev) => ({ ...prev, ...data.rates }));
-          setRateSource("live");
         }
       } catch {
-        if (active) {
-          setRateSource("fallback");
-        }
+        // keep fallback rates when live rates are unavailable
       }
     };
     loadRates();
@@ -312,6 +308,7 @@ export default function PricingSection() {
     return "USD";
   }, [country, inferredRegion]);
   const canShowCheckout = checkoutReady;
+  const showCountryPricing = canShowCheckout && Boolean(country);
   const recommendedGateway = inferredRegion === "IN" ? "Razorpay" : "PayPal";
   const checkoutHint = !checkoutReady
     ? demoSlot
@@ -624,15 +621,15 @@ export default function PricingSection() {
           {canShowCheckout ? "Pay via PayPal" : "Checkout Locked"}
         </button>
       </div>
-      {inferredRegion === "IN" ? (
+      {canShowCheckout && inferredRegion === "IN" ? (
         <p className="text-xs text-slate-500">
           PayPal availability for India can depend on PayPal account setup and supported currency behavior.
         </p>
-      ) : (
+      ) : canShowCheckout ? (
         <p className="text-xs text-slate-500">
           PayPal checkout is processed in USD. PayPal may handle local currency conversion on the user&apos;s side.
         </p>
-      )}
+      ) : null}
     </div>
   );
 
@@ -660,10 +657,7 @@ export default function PricingSection() {
                   ? "Choose the payment gateway you want to use. Your workshop or program amount is now locked for the current booking flow."
                   : "Your payment amount and gateway options will appear here after you complete one of the booking flows above."}
               </p>
-              <div className="mt-4 inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                {rateSource === "live" ? "Live FX rates" : "Estimated FX rates"}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
                 <span className="rounded-full bg-slate-100 px-3 py-1">1. Booking details saved</span>
                 <span className="rounded-full bg-slate-100 px-3 py-1">2. Payment completed</span>
                 <span className="rounded-full bg-slate-100 px-3 py-1">3. Confirmation + session link on email</span>
@@ -686,7 +680,7 @@ export default function PricingSection() {
               {canShowCheckout && (
                 <p className="text-xs font-semibold text-slate-700 md:text-right">Recommended gateway: {recommendedGateway}</p>
               )}
-              {canShowCheckout && inferredRegion === "GLOBAL" && (
+              {showCountryPricing && inferredRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500 md:text-right">
                   Country detected: {effectiveCountry || "Not selected"} · Currency: {displayCurrency}
                 </p>
@@ -707,10 +701,7 @@ export default function PricingSection() {
                   <p className="mt-1 text-sm text-slate-600">{lockedWorkshopHint}</p>
                 </div>
               )}
-              {canShowCheckout && inferredRegion === "GLOBAL" && (
-                <p className="mt-1 text-xs text-slate-500">~{formatMoney(pricingInfo.raw, displayCurrency)} for {pricingInfo.baseInr} INR.</p>
-              )}
-              {canShowCheckout && inferredRegion === "IN" && !demoSlot && (
+                      {canShowCheckout && inferredRegion === "IN" && !demoSlot && (
                 <p className="mt-1 text-xs text-slate-500">India 1:1 demo price is locked at Rs 499 for this booking.</p>
               )}
               {canShowCheckout && inferredRegion === "IN" && demoSlot && (
@@ -722,7 +713,7 @@ export default function PricingSection() {
                 </p>
               )}
               {renderGatewayButtons("workshop", "workshop")}
-              {canShowCheckout && inferredRegion === "GLOBAL" && (
+              {showCountryPricing && inferredRegion === "GLOBAL" && (
                 <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-slate-700">
                   <span className="mt-0.5 text-amber-600" aria-hidden="true">
                     •
@@ -747,16 +738,13 @@ export default function PricingSection() {
                   <p className="mt-1 text-sm text-slate-600">{lockedProgramHint}</p>
                 </div>
               )}
-              {canShowCheckout && inferredRegion === "GLOBAL" && programPricing.baseInr && (
-                <p className="mt-1 text-xs text-slate-500">~{formatMoney(programPricing.raw, displayCurrency)} for {programPricing.baseInr} INR.</p>
-              )}
-              {canShowCheckout && (
+                      {canShowCheckout && (
                 <p className="mt-2 text-xs font-medium text-slate-600">
                   Program confirmation and session details will be shared on the same email after successful payment.
                 </p>
               )}
               {renderGatewayButtons("program", "program")}
-              {canShowCheckout && inferredRegion === "GLOBAL" && (
+              {showCountryPricing && inferredRegion === "GLOBAL" && (
                 <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-slate-700">
                   <span className="mt-0.5 text-amber-600" aria-hidden="true">
                     •
@@ -786,3 +774,5 @@ export default function PricingSection() {
     </section>
   );
 }
+
+
