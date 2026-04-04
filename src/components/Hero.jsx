@@ -4,8 +4,7 @@ import kid from "../assets/kid.png";
 import { getWorkshopGroupSlots } from "./countryTiming";
 import { fetchWorkshopSeats } from "../lib/workshopSeats";
 import { fetchAvailability } from "../lib/availability";
-
-const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
+import { writeCheckoutSnapshot } from "../lib/checkoutSnapshot";
 
 function scrollToCheckout() {
   if (typeof window === "undefined") return;
@@ -154,19 +153,14 @@ export default function Hero() {
       window.dispatchEvent(new Event("ka-date-change"));
       window.dispatchEvent(new Event("ka-demo-slot-change"));
       window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
-      window.localStorage.setItem(
-        CHECKOUT_SNAPSHOT_KEY,
-        JSON.stringify({
-          ready: true,
-          flow: "workshop",
-          country: "IN",
-          contact: demoForm.contact,
-          demoSlot: selectedSlotLabel,
-          workshopSlotKey: slot.slotKey,
-          updatedAt: Date.now(),
-        })
-      );
-      window.sessionStorage.setItem("ka_checkout_session_ready", "1");
+      writeCheckoutSnapshot({
+        ready: true,
+        flow: "workshop",
+        country: "IN",
+        contact: demoForm.contact,
+        demoSlot: selectedSlotLabel,
+        workshopSlotKey: slot.slotKey,
+      });
       window.dispatchEvent(
         new CustomEvent("ka-checkout-snapshot", {
           detail: {

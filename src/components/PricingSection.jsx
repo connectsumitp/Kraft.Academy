@@ -1,5 +1,11 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { confirmWorkshopSeat } from "../lib/workshopSeats";
+import {
+  clearCheckoutSnapshot,
+  getEmptyCheckoutSnapshot,
+  readCheckoutSnapshot,
+  writeCheckoutSnapshot,
+} from "../lib/checkoutSnapshot";
 
 const fallbackRates = {
   INR: 1,
@@ -7,10 +13,51 @@ const fallbackRates = {
   EUR: 0.011,
   GBP: 0.01,
   AED: 0.044,
+  TND: 0.037,
+  MAD: 0.12,
+  DZD: 1.61,
+  JOD: 0.0085,
+  LYD: 0.057,
+  SAR: 0.045,
+  QAR: 0.044,
+  KWD: 0.0036,
+  OMR: 0.0046,
+  BHD: 0.0045,
   SGD: 0.016,
   AUD: 0.019,
   NZD: 0.02,
   CAD: 0.016,
+  CHF: 0.011,
+  SEK: 0.13,
+  NOK: 0.13,
+  DKK: 0.081,
+  PLN: 0.048,
+  CZK: 0.28,
+  HUF: 4.25,
+  RON: 0.056,
+  TRY: 0.39,
+  ILS: 0.045,
+  ZAR: 0.22,
+  NGN: 18.5,
+  KES: 1.54,
+  GHS: 0.18,
+  EGP: 0.58,
+  PKR: 3.36,
+  BDT: 1.44,
+  LKR: 3.62,
+  NPR: 1.6,
+  THB: 0.42,
+  MYR: 0.057,
+  IDR: 196,
+  PHP: 0.68,
+  VND: 307,
+  HKD: 0.094,
+  TWD: 0.4,
+  KRW: 16.5,
+  JPY: 1.75,
+  CNY: 0.087,
+  MXN: 0.22,
+  BRL: 0.06,
 };
 
 const euroCountries = new Set(["AT", "BE", "CY", "DE", "EE", "ES", "FI", "FR", "GR", "HR", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PT", "SI", "SK"]);
@@ -20,14 +67,51 @@ const countryCurrencyMap = {
   CA: "CAD",
   GB: "GBP",
   AE: "AED",
+  TN: "TND",
+  MA: "MAD",
+  DZ: "DZD",
+  JO: "JOD",
+  LY: "LYD",
+  SA: "SAR",
+  QA: "QAR",
+  KW: "KWD",
+  OM: "OMR",
+  BH: "BHD",
   SG: "SGD",
   AU: "AUD",
   NZ: "NZD",
+  CH: "CHF",
+  SE: "SEK",
+  NO: "NOK",
+  DK: "DKK",
+  PL: "PLN",
+  CZ: "CZK",
+  HU: "HUF",
+  RO: "RON",
+  TR: "TRY",
+  IL: "ILS",
+  ZA: "ZAR",
+  NG: "NGN",
+  KE: "KES",
+  GH: "GHS",
+  EG: "EGP",
+  PK: "PKR",
+  BD: "BDT",
+  LK: "LKR",
+  NP: "NPR",
+  TH: "THB",
+  MY: "MYR",
+  ID: "IDR",
+  PH: "PHP",
+  VN: "VND",
+  HK: "HKD",
+  TW: "TWD",
+  KR: "KRW",
+  JP: "JPY",
+  CN: "CNY",
+  MX: "MXN",
+  BR: "BRL",
 };
-
-const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
-const CHECKOUT_SESSION_KEY = "ka_checkout_session_ready";
-const SNAPSHOT_MAX_AGE_MS = 1000 * 60 * 90;
 
 function getCurrencyForCountry(countryCode) {
   if (!countryCode) return "USD";
@@ -70,61 +154,6 @@ function getConvertedAmount(value) {
 function getSubunitFactor(currency) {
   const zeroDecimal = new Set(["JPY", "KRW", "VND"]);
   return zeroDecimal.has(currency) ? 1 : 100;
-}
-
-function getEmptySnapshot() {
-  return {
-    ready: false,
-    flow: "",
-    country: "",
-    contact: "",
-    demoSlot: "",
-    workshopSlotKey: "",
-  };
-}
-
-function readCheckoutSnapshot() {
-  if (typeof window === "undefined") {
-    return getEmptySnapshot();
-  }
-
-  const raw = window.localStorage.getItem(CHECKOUT_SNAPSHOT_KEY);
-  if (!raw) return getEmptySnapshot();
-
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      ready:
-        Boolean(parsed?.ready) &&
-        Number.isFinite(Number(parsed?.updatedAt)) &&
-        Date.now() - Number(parsed.updatedAt) <= SNAPSHOT_MAX_AGE_MS,
-      flow: parsed?.flow || "",
-      country: parsed?.country || "",
-      contact: parsed?.contact || "",
-      demoSlot: parsed?.demoSlot || "",
-      workshopSlotKey: parsed?.workshopSlotKey || "",
-    };
-  } catch {
-    return getEmptySnapshot();
-  }
-}
-
-function writeCheckoutSnapshot(snapshot) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    CHECKOUT_SNAPSHOT_KEY,
-    JSON.stringify({
-      ...snapshot,
-      updatedAt: Date.now(),
-    })
-  );
-  window.sessionStorage.setItem(CHECKOUT_SESSION_KEY, "1");
-}
-
-function clearCheckoutSnapshot() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
-  window.sessionStorage.removeItem(CHECKOUT_SESSION_KEY);
 }
 
 function loadRazorpayScript() {
@@ -202,7 +231,7 @@ async function sendConfirmationEmail(emailScriptUrl, purpose) {
 }
 
 export default function PricingSection() {
-  const [checkoutSnapshot, setCheckoutSnapshot] = useState(getEmptySnapshot);
+  const [checkoutSnapshot, setCheckoutSnapshot] = useState(getEmptyCheckoutSnapshot);
   const [rates, setRates] = useState(fallbackRates);
   const [checkoutStatus, setCheckoutStatus] = useState("");
   const [isHighlighted, setIsHighlighted] = useState(false);
@@ -219,7 +248,7 @@ export default function PricingSection() {
 
     const clearSnapshot = () => {
       clearCheckoutSnapshot();
-      setCheckoutSnapshot(getEmptySnapshot());
+      setCheckoutSnapshot(getEmptyCheckoutSnapshot());
     };
 
     const applySnapshot = (event) => {
@@ -774,5 +803,7 @@ export default function PricingSection() {
     </section>
   );
 }
+
+
 
 

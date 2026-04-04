@@ -3,6 +3,7 @@ import PhoneInput from "react-phone-number-input";
 import { getProgramTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 import { fetchAvailability } from "../lib/availability";
 import { getCountryFromPhone, isAcceptableContactNumber } from "../lib/phoneCountry";
+import { writeCheckoutSnapshot } from "../lib/checkoutSnapshot";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -23,7 +24,6 @@ function getDefaultCountry() {
 }
 
 const programs = ["AI Future Skills", "Coding Bootcamp"];
-const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
 
 function normalizeCountryCode(value) {
   return String(value || "").trim().toUpperCase();
@@ -48,9 +48,10 @@ export default function LeadForm() {
   const isContactValid = useMemo(() => (form.contact ? isAcceptableContactNumber(form.contact) : false), [form.contact]);
   const defaultCountry = useMemo(getDefaultCountry, []);
   const resolvedDefaultCountry = geoCountry || defaultCountry;
+  const parsedPhoneCountry = useMemo(() => normalizeCountryCode(getCountryFromPhone(form.contact)), [form.contact]);
   const effectiveCountry = useMemo(
-    () => normalizeCountryCode(form.country) || normalizeCountryCode(getCountryFromPhone(form.contact)) || normalizeCountryCode(resolvedDefaultCountry) || "US",
-    [form.contact, form.country, resolvedDefaultCountry]
+    () => parsedPhoneCountry || normalizeCountryCode(form.country) || normalizeCountryCode(resolvedDefaultCountry) || "US",
+    [form.country, parsedPhoneCountry, resolvedDefaultCountry]
   );
   const timingOptions = useMemo(() => getProgramTimingOptions(effectiveCountry, availabilityItems), [effectiveCountry, availabilityItems]);
   const timingLabel = useMemo(() => getTimingTimezoneLabel(effectiveCountry, "", "program"), [effectiveCountry]);
@@ -203,19 +204,14 @@ export default function LeadForm() {
         window.localStorage.removeItem("ka_demo_slot");
         window.localStorage.removeItem("ka_workshop_slot_key");
         window.localStorage.setItem("ka_checkout_flow", "program");
-        window.localStorage.setItem(
-          CHECKOUT_SNAPSHOT_KEY,
-          JSON.stringify({
-            ready: true,
-            flow: "program",
-            country: effectiveCountry,
-            contact: form.contact,
-            demoSlot: "",
-            workshopSlotKey: "",
-            updatedAt: Date.now(),
-          })
-        );
-        window.sessionStorage.setItem("ka_checkout_session_ready", "1");
+        writeCheckoutSnapshot({
+          ready: true,
+          flow: "program",
+          country: effectiveCountry,
+          contact: form.contact,
+          demoSlot: "",
+          workshopSlotKey: "",
+        });
         window.dispatchEvent(
           new CustomEvent("ka-checkout-snapshot", {
             detail: {
@@ -327,7 +323,7 @@ export default function LeadForm() {
                   setForm((prev) => ({
                     ...prev,
                     contact: next,
-                    country: inferred || (next ? prev.country : ""),
+                    country: inferred || (next ? prev.country || "" : ""),
                     timing: !next || (inferred && inferred !== prev.country) ? "" : prev.timing,
                   }));
                   if (typeof window !== "undefined") {
