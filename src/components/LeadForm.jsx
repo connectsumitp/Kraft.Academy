@@ -180,6 +180,7 @@ export default function LeadForm() {
         window.dispatchEvent(
           new CustomEvent("ka-checkout-snapshot", {
             detail: {
+              flow: "program",
               country: form.country,
               contact: form.contact,
               demoSlot: "",

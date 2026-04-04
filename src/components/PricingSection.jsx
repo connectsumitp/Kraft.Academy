@@ -137,6 +137,8 @@ function getRegionFromContact(contact) {
   return "";
 }
 
+const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
+
 function hasSessionCheckoutReady() {
   if (typeof window === "undefined") return false;
   return window.sessionStorage.getItem("ka_checkout_session_ready") === "1";
@@ -171,6 +173,17 @@ function hasStoredCheckoutAccess() {
   return false;
 }
 
+function readCheckoutSnapshot() {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(CHECKOUT_SNAPSHOT_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 function getStoredCheckoutSnapshot() {
   if (typeof window === "undefined") {
     return {
@@ -180,6 +193,20 @@ function getStoredCheckoutSnapshot() {
       workshopSlotKey: "",
       paymentRegion: "GLOBAL",
       checkoutReady: false,
+    };
+  }
+
+  const savedSnapshot = readCheckoutSnapshot();
+  if (savedSnapshot && hasSessionCheckoutReady()) {
+    const nextContact = savedSnapshot.contact || "";
+    const nextCountry = savedSnapshot.country || getCountryFromPhone(nextContact) || "";
+    return {
+      country: nextCountry,
+      contact: nextContact,
+      demoSlot: savedSnapshot.demoSlot || "",
+      workshopSlotKey: savedSnapshot.workshopSlotKey || "",
+      paymentRegion: nextCountry === "IN" ? "IN" : "GLOBAL",
+      checkoutReady: Boolean(savedSnapshot.ready),
     };
   }
 
@@ -231,6 +258,7 @@ export default function PricingSection() {
     const clearSessionAndSync = () => {
       if (hasSessionCheckoutReady()) {
         window.sessionStorage.removeItem("ka_checkout_session_ready");
+        window.localStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
       }
       syncFromStorage();
     };
@@ -250,6 +278,38 @@ export default function PricingSection() {
       const nextDemoSlot = detail.demoSlot || "";
       const nextWorkshopSlotKey = detail.workshopSlotKey || "";
       const nextRegion = nextCountry === "IN" ? "IN" : "GLOBAL";
+
+      if (nextContact) {
+        window.localStorage.setItem("ka_contact", nextContact);
+      }
+      if (nextCountry) {
+        window.localStorage.setItem("ka_country", nextCountry);
+      }
+      if (typeof detail.demoSlot === "string") {
+        if (detail.demoSlot) {
+          window.localStorage.setItem("ka_demo_slot", detail.demoSlot);
+        } else {
+          window.localStorage.removeItem("ka_demo_slot");
+        }
+      }
+      if (typeof detail.workshopSlotKey === "string") {
+        if (detail.workshopSlotKey) {
+          window.localStorage.setItem("ka_workshop_slot_key", detail.workshopSlotKey);
+        } else {
+          window.localStorage.removeItem("ka_workshop_slot_key");
+        }
+      }
+      window.localStorage.setItem(
+        CHECKOUT_SNAPSHOT_KEY,
+        JSON.stringify({
+          ready: true,
+          flow: detail.flow || "",
+          country: nextCountry,
+          contact: nextContact,
+          demoSlot: nextDemoSlot,
+          workshopSlotKey: nextWorkshopSlotKey,
+        })
+      );
 
       window.sessionStorage.setItem("ka_checkout_session_ready", "1");
       setCountry(nextCountry);
@@ -330,17 +390,27 @@ export default function PricingSection() {
   }, []);
 
   const isContactValid = useMemo(() => (contact ? isValidPhoneNumber(contact) : false), [contact]);
-  const contactCountry = useMemo(() => (isContactValid ? getCountryFromPhone(contact) : ""), [contact, isContactValid]);
-  const contactRegion = useMemo(() => getRegionFromContact(contact), [contact]);
-  const inferredRegion = (isContactValid ? contactRegion : "") || (country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion);
+  const storedContact = typeof window !== "undefined" ? window.localStorage.getItem("ka_contact") || "" : "";
+  const effectiveContact = contact || (checkoutReady ? storedContact : "");
+  const isEffectiveContactValid = useMemo(
+    () => (effectiveContact ? isValidPhoneNumber(effectiveContact) : false),
+    [effectiveContact]
+  );
+  const contactCountry = useMemo(
+    () => (isEffectiveContactValid ? getCountryFromPhone(effectiveContact) : ""),
+    [effectiveContact, isEffectiveContactValid]
+  );
+  const contactRegion = useMemo(() => getRegionFromContact(effectiveContact), [effectiveContact]);
+  const inferredRegion = (isEffectiveContactValid ? contactRegion : "") || (country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion);
   const effectiveCountry = contactCountry || country;
+  const savedSnapshot = typeof window !== "undefined" ? readCheckoutSnapshot() : null;
   const displayCurrency = useMemo(() => {
     if (inferredRegion === "IN") return "INR";
     if (contactCountry && contactCountry !== "IN") return getCurrencyForCountry(contactCountry);
     if (country && country !== "IN") return getCurrencyForCountry(country);
     return "USD";
   }, [country, inferredRegion, contactCountry]);
-  const hasPaymentAccess = Boolean(contactRegion && isContactValid);
+  const hasPaymentAccess = Boolean((savedSnapshot?.ready && checkoutReady) || (contactRegion && isEffectiveContactValid));
   const canShowCheckout = checkoutReady && hasPaymentAccess;
   const recommendedGateway = inferredRegion === "IN" ? "Razorpay" : "PayPal";
   const checkoutHint = !hasPaymentAccess

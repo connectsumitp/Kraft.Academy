@@ -149,6 +149,7 @@ export default function Hero() {
       window.dispatchEvent(
         new CustomEvent("ka-checkout-snapshot", {
           detail: {
+            flow: "workshop",
             country: "IN",
             contact: demoForm.contact,
             demoSlot: selectedSlotLabel,

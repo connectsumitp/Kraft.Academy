@@ -216,6 +216,7 @@ export default function WorkshopLeadForm() {
         window.dispatchEvent(
           new CustomEvent("ka-checkout-snapshot", {
             detail: {
+              flow: "workshop",
               country: form.country,
               contact: form.contact,
               demoSlot: "",
