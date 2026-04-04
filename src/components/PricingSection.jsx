@@ -1,7 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react";
-import { isValidPhoneNumber } from "react-phone-number-input";
+import { useEffect, useMemo, useState } from "react";
 import { confirmWorkshopSeat } from "../lib/workshopSeats";
-import { getCountryFromPhone } from "../lib/phoneCountry";
 
 const fallbackRates = {
   INR: 1,
@@ -26,6 +24,10 @@ const countryCurrencyMap = {
   AU: "AUD",
   NZ: "NZD",
 };
+
+const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
+const CHECKOUT_SESSION_KEY = "ka_checkout_session_ready";
+
 function getCurrencyForCountry(countryCode) {
   if (!countryCode) return "USD";
   if (countryCurrencyMap[countryCode]) return countryCurrencyMap[countryCode];
@@ -54,6 +56,57 @@ function getConvertedAmount(value) {
 function getSubunitFactor(currency) {
   const zeroDecimal = new Set(["JPY", "KRW", "VND"]);
   return zeroDecimal.has(currency) ? 1 : 100;
+}
+
+function getEmptySnapshot() {
+  return {
+    ready: false,
+    flow: "",
+    country: "",
+    contact: "",
+    demoSlot: "",
+    workshopSlotKey: "",
+  };
+}
+
+function hasSessionCheckoutReady() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(CHECKOUT_SESSION_KEY) === "1";
+}
+
+function readCheckoutSnapshot() {
+  if (typeof window === "undefined" || !hasSessionCheckoutReady()) {
+    return getEmptySnapshot();
+  }
+
+  const raw = window.localStorage.getItem(CHECKOUT_SNAPSHOT_KEY);
+  if (!raw) return getEmptySnapshot();
+
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      ready: Boolean(parsed?.ready),
+      flow: parsed?.flow || "",
+      country: parsed?.country || "",
+      contact: parsed?.contact || "",
+      demoSlot: parsed?.demoSlot || "",
+      workshopSlotKey: parsed?.workshopSlotKey || "",
+    };
+  } catch {
+    return getEmptySnapshot();
+  }
+}
+
+function writeCheckoutSnapshot(snapshot) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CHECKOUT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  window.sessionStorage.setItem(CHECKOUT_SESSION_KEY, "1");
+}
+
+function clearCheckoutSnapshot() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
+  window.sessionStorage.removeItem(CHECKOUT_SESSION_KEY);
 }
 
 function loadRazorpayScript() {
@@ -130,110 +183,8 @@ async function sendConfirmationEmail(emailScriptUrl, purpose) {
   });
 }
 
-function getRegionFromContact(contact) {
-  if (!contact || typeof contact !== "string") return "";
-  if (contact.startsWith("+91")) return "IN";
-  if (contact.startsWith("+")) return "GLOBAL";
-  return "";
-}
-
-const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
-
-function hasSessionCheckoutReady() {
-  if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem("ka_checkout_session_ready") === "1";
-}
-
-function hasStoredCheckoutAccess() {
-  if (typeof window === "undefined") return false;
-
-  const flow = window.localStorage.getItem("ka_checkout_flow") || "";
-  const contact = window.localStorage.getItem("ka_contact") || "";
-  const date = window.localStorage.getItem("ka_date") || "";
-  const timing = window.localStorage.getItem("ka_timing") || "";
-  const program = window.localStorage.getItem("ka_program") || "";
-  const demoSlot = window.localStorage.getItem("ka_demo_slot") || "";
-  const workshopSlotKey = window.localStorage.getItem("ka_workshop_slot_key") || "";
-
-  if (!flow || !contact || !isValidPhoneNumber(contact)) {
-    return false;
-  }
-
-  if (flow === "program") {
-    return Boolean(program && timing);
-  }
-
-  if (flow === "workshop") {
-    if (demoSlot || workshopSlotKey) {
-      return Boolean(date && timing && getCountryFromPhone(contact) === "IN");
-    }
-    return Boolean(date && timing);
-  }
-
-  return false;
-}
-
-function readCheckoutSnapshot() {
-  if (typeof window === "undefined") return null;
-  const raw = window.localStorage.getItem(CHECKOUT_SNAPSHOT_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function getStoredCheckoutSnapshot() {
-  if (typeof window === "undefined") {
-    return {
-      country: "",
-      contact: "",
-      demoSlot: "",
-      workshopSlotKey: "",
-      paymentRegion: "GLOBAL",
-      checkoutReady: false,
-    };
-  }
-
-  const savedSnapshot = readCheckoutSnapshot();
-  if (savedSnapshot && hasSessionCheckoutReady()) {
-    const nextContact = savedSnapshot.contact || "";
-    const nextCountry = savedSnapshot.country || getCountryFromPhone(nextContact) || "";
-    return {
-      country: nextCountry,
-      contact: nextContact,
-      demoSlot: savedSnapshot.demoSlot || "",
-      workshopSlotKey: savedSnapshot.workshopSlotKey || "",
-      paymentRegion: nextCountry === "IN" ? "IN" : "GLOBAL",
-      checkoutReady: Boolean(savedSnapshot.ready),
-    };
-  }
-
-  const storedCountry = window.localStorage.getItem("ka_country") || "";
-  const storedContact = window.localStorage.getItem("ka_contact") || "";
-  const storedDemoSlot = window.localStorage.getItem("ka_demo_slot") || "";
-  const storedWorkshopSlotKey = window.localStorage.getItem("ka_workshop_slot_key") || "";
-  const inferred = getCountryFromPhone(storedContact) || storedCountry;
-  const sessionReady = hasSessionCheckoutReady();
-
-  return {
-    country: sessionReady ? inferred || storedCountry : "",
-    contact: sessionReady ? storedContact : "",
-    demoSlot: sessionReady ? storedDemoSlot : "",
-    workshopSlotKey: sessionReady ? storedWorkshopSlotKey : "",
-    paymentRegion: inferred === "IN" ? "IN" : inferred ? "GLOBAL" : storedCountry === "IN" ? "IN" : "GLOBAL",
-    checkoutReady: sessionReady && hasStoredCheckoutAccess(),
-  };
-}
-
 export default function PricingSection() {
-  const [country, setCountry] = useState("");
-  const [contact, setContact] = useState("");
-  const [demoSlot, setDemoSlot] = useState("");
-  const [workshopSlotKey, setWorkshopSlotKey] = useState("");
-  const [checkoutReady, setCheckoutReady] = useState(false);
-  const [paymentRegion, setPaymentRegion] = useState("GLOBAL");
+  const [checkoutSnapshot, setCheckoutSnapshot] = useState(getEmptySnapshot);
   const [rates, setRates] = useState(fallbackRates);
   const [rateSource, setRateSource] = useState("fallback");
   const [checkoutStatus, setCheckoutStatus] = useState("");
@@ -245,102 +196,49 @@ export default function PricingSection() {
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
-    const syncFromStorage = () => {
-      const snapshot = getStoredCheckoutSnapshot();
-      setCountry(snapshot.country);
-      setContact(snapshot.contact);
-      setDemoSlot(snapshot.demoSlot);
-      setWorkshopSlotKey(snapshot.workshopSlotKey);
-      setPaymentRegion(snapshot.paymentRegion);
-      setCheckoutReady(snapshot.checkoutReady);
+    const syncSnapshot = () => {
+      setCheckoutSnapshot(readCheckoutSnapshot());
     };
 
-    const clearSessionAndSync = () => {
-      if (hasSessionCheckoutReady()) {
-        window.sessionStorage.removeItem("ka_checkout_session_ready");
-        window.localStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
-      }
-      syncFromStorage();
+    const clearSnapshot = () => {
+      clearCheckoutSnapshot();
+      setCheckoutSnapshot(getEmptySnapshot());
     };
 
-    syncFromStorage();
-
-    const onCountryChange = () => clearSessionAndSync();
-    const onContactChange = () => clearSessionAndSync();
-    const onDateChange = () => clearSessionAndSync();
-    const onDemoSlotChange = () => syncFromStorage();
-    const onWorkshopSlotKeyChange = () => syncFromStorage();
-    const onBookingInputChange = () => clearSessionAndSync();
-    const onCheckoutSnapshot = (event) => {
+    const applySnapshot = (event) => {
       const detail = event?.detail || {};
-      const nextContact = detail.contact || "";
-      const nextCountry = detail.country || getCountryFromPhone(nextContact) || "";
-      const nextDemoSlot = detail.demoSlot || "";
-      const nextWorkshopSlotKey = detail.workshopSlotKey || "";
-      const nextRegion = nextCountry === "IN" ? "IN" : "GLOBAL";
-
-      if (nextContact) {
-        window.localStorage.setItem("ka_contact", nextContact);
-      }
-      if (nextCountry) {
-        window.localStorage.setItem("ka_country", nextCountry);
-      }
-      if (typeof detail.demoSlot === "string") {
-        if (detail.demoSlot) {
-          window.localStorage.setItem("ka_demo_slot", detail.demoSlot);
-        } else {
-          window.localStorage.removeItem("ka_demo_slot");
-        }
-      }
-      if (typeof detail.workshopSlotKey === "string") {
-        if (detail.workshopSlotKey) {
-          window.localStorage.setItem("ka_workshop_slot_key", detail.workshopSlotKey);
-        } else {
-          window.localStorage.removeItem("ka_workshop_slot_key");
-        }
-      }
-      window.localStorage.setItem(
-        CHECKOUT_SNAPSHOT_KEY,
-        JSON.stringify({
-          ready: true,
-          flow: detail.flow || "",
-          country: nextCountry,
-          contact: nextContact,
-          demoSlot: nextDemoSlot,
-          workshopSlotKey: nextWorkshopSlotKey,
-        })
-      );
-
-      window.sessionStorage.setItem("ka_checkout_session_ready", "1");
-      setCountry(nextCountry);
-      setContact(nextContact);
-      setDemoSlot(nextDemoSlot);
-      setWorkshopSlotKey(nextWorkshopSlotKey);
-      setPaymentRegion(nextRegion);
-      setCheckoutReady(true);
-    };
-    const onCheckoutReady = () => {
-      window.sessionStorage.setItem("ka_checkout_session_ready", "1");
-      syncFromStorage();
+      const nextSnapshot = {
+        ready: true,
+        flow: detail.flow || "",
+        country: detail.country || "",
+        contact: detail.contact || "",
+        demoSlot: detail.demoSlot || "",
+        workshopSlotKey: detail.workshopSlotKey || "",
+      };
+      writeCheckoutSnapshot(nextSnapshot);
+      setCheckoutSnapshot(nextSnapshot);
     };
 
-    window.addEventListener("ka-country-change", onCountryChange);
-    window.addEventListener("ka-contact-change", onContactChange);
-    window.addEventListener("ka-date-change", onDateChange);
-    window.addEventListener("ka-demo-slot-change", onDemoSlotChange);
-    window.addEventListener("ka-workshop-slot-key-change", onWorkshopSlotKeyChange);
-    window.addEventListener("ka-booking-input-change", onBookingInputChange);
-    window.addEventListener("ka-checkout-snapshot", onCheckoutSnapshot);
-    window.addEventListener("ka-checkout-ready", onCheckoutReady);
+    syncSnapshot();
+
+    window.addEventListener("ka-country-change", clearSnapshot);
+    window.addEventListener("ka-contact-change", clearSnapshot);
+    window.addEventListener("ka-date-change", clearSnapshot);
+    window.addEventListener("ka-demo-slot-change", syncSnapshot);
+    window.addEventListener("ka-workshop-slot-key-change", syncSnapshot);
+    window.addEventListener("ka-booking-input-change", clearSnapshot);
+    window.addEventListener("ka-checkout-snapshot", applySnapshot);
+    window.addEventListener("ka-checkout-ready", syncSnapshot);
+
     return () => {
-      window.removeEventListener("ka-country-change", onCountryChange);
-      window.removeEventListener("ka-contact-change", onContactChange);
-      window.removeEventListener("ka-date-change", onDateChange);
-      window.removeEventListener("ka-demo-slot-change", onDemoSlotChange);
-      window.removeEventListener("ka-workshop-slot-key-change", onWorkshopSlotKeyChange);
-      window.removeEventListener("ka-booking-input-change", onBookingInputChange);
-      window.removeEventListener("ka-checkout-snapshot", onCheckoutSnapshot);
-      window.removeEventListener("ka-checkout-ready", onCheckoutReady);
+      window.removeEventListener("ka-country-change", clearSnapshot);
+      window.removeEventListener("ka-contact-change", clearSnapshot);
+      window.removeEventListener("ka-date-change", clearSnapshot);
+      window.removeEventListener("ka-demo-slot-change", syncSnapshot);
+      window.removeEventListener("ka-workshop-slot-key-change", syncSnapshot);
+      window.removeEventListener("ka-booking-input-change", clearSnapshot);
+      window.removeEventListener("ka-checkout-snapshot", applySnapshot);
+      window.removeEventListener("ka-checkout-ready", syncSnapshot);
     };
   }, []);
 
@@ -389,47 +287,28 @@ export default function PricingSection() {
     };
   }, []);
 
-  const isContactValid = useMemo(() => (contact ? isValidPhoneNumber(contact) : false), [contact]);
-  const storedContact = typeof window !== "undefined" ? window.localStorage.getItem("ka_contact") || "" : "";
-  const effectiveContact = contact || (checkoutReady ? storedContact : "");
-  const isEffectiveContactValid = useMemo(
-    () => (effectiveContact ? isValidPhoneNumber(effectiveContact) : false),
-    [effectiveContact]
-  );
-  const contactCountry = useMemo(
-    () => (isEffectiveContactValid ? getCountryFromPhone(effectiveContact) : ""),
-    [effectiveContact, isEffectiveContactValid]
-  );
-  const contactRegion = useMemo(() => getRegionFromContact(effectiveContact), [effectiveContact]);
-  const inferredRegion = (isEffectiveContactValid ? contactRegion : "") || (country ? (country === "IN" ? "IN" : "GLOBAL") : paymentRegion);
-  const effectiveCountry = contactCountry || country;
-  const savedSnapshot = typeof window !== "undefined" ? readCheckoutSnapshot() : null;
+  const checkoutReady = checkoutSnapshot.ready;
+  const country = checkoutSnapshot.country;
+  const demoSlot = checkoutSnapshot.demoSlot;
+  const workshopSlotKey = checkoutSnapshot.workshopSlotKey;
+  const inferredRegion = country === "IN" ? "IN" : country ? "GLOBAL" : "GLOBAL";
+  const effectiveCountry = country;
   const displayCurrency = useMemo(() => {
     if (inferredRegion === "IN") return "INR";
-    if (contactCountry && contactCountry !== "IN") return getCurrencyForCountry(contactCountry);
     if (country && country !== "IN") return getCurrencyForCountry(country);
     return "USD";
-  }, [country, inferredRegion, contactCountry]);
-  const hasPaymentAccess = Boolean((savedSnapshot?.ready && checkoutReady) || (contactRegion && isEffectiveContactValid));
-  const canShowCheckout = checkoutReady && hasPaymentAccess;
+  }, [country, inferredRegion]);
+  const canShowCheckout = checkoutReady;
   const recommendedGateway = inferredRegion === "IN" ? "Razorpay" : "PayPal";
-  const checkoutHint = !hasPaymentAccess
+  const checkoutHint = !checkoutReady
     ? demoSlot
       ? "Add a valid Indian contact number to unlock this workshop payment."
-      : "Add a valid contact number in the booking form above to unlock your checkout."
-    : !checkoutReady
-      ? "Submit one of the booking flows above and the correct payment path will unlock here."
-      : `Checkout is unlocked. ${recommendedGateway} is the most reliable option for this booking right now.`;
+      : "Complete one of the booking flows above to unlock your checkout."
+    : `Checkout is unlocked. ${recommendedGateway} is the most reliable option for this booking right now.`;
   const lockedWorkshopHint = demoSlot
     ? "Choose this India workshop route with a valid Indian contact number to reveal the Rs 99 payment."
     : "Complete either the group workshop or 1:1 / global demo booking above to reveal your workshop payment.";
   const lockedProgramHint = "Open the program enrollment section, add your details, and continue to reveal the program payment.";
-
-  useEffect(() => {
-    if (contactRegion) {
-      setPaymentRegion(contactRegion);
-    }
-  }, [contactRegion]);
 
   const workshopGroupInr = Number(import.meta.env.VITE_WORKSHOP_GROUP_INR || 99);
   const workshopIndiaOneToOneInr = Number(import.meta.env.VITE_WORKSHOP_11_INDIA_INR || 499);
@@ -590,14 +469,6 @@ export default function PricingSection() {
 
   const handleCheckout = async (purpose, gateway) => {
     setCheckoutStatus("");
-    if (!hasPaymentAccess) {
-      setCheckoutStatus(
-        demoSlot
-          ? "Selected workshop slot is India-only. Add a valid Indian contact number in the booking form to unlock the Rs 99 payment."
-          : "Enter a valid contact number to unlock the correct payment options for your region."
-      );
-      return;
-    }
     if (!checkoutReady) {
       setCheckoutStatus("Complete the booking form above to unlock checkout.");
       return;
@@ -785,23 +656,16 @@ export default function PricingSection() {
                 {canShowCheckout ? `${inferredRegion === "IN" ? "India" : "Global"} checkout unlocked` : "Checkout unlocks after booking confirmation"}
               </div>
               <p className="text-xs leading-relaxed text-slate-500 md:text-right">
-                {canShowCheckout && contactRegion
-                  ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on contact number.`
+                {canShowCheckout
+                  ? `Payment region locked to ${inferredRegion === "IN" ? "India" : "Global"} based on the booking flow you completed.`
                   : checkoutHint}
               </p>
               {canShowCheckout && (
-                <p className="text-xs font-semibold text-slate-700 md:text-right">
-                  Recommended gateway: {recommendedGateway}
-                </p>
+                <p className="text-xs font-semibold text-slate-700 md:text-right">Recommended gateway: {recommendedGateway}</p>
               )}
               {canShowCheckout && inferredRegion === "GLOBAL" && (
                 <p className="text-xs text-slate-500 md:text-right">
                   Country detected: {effectiveCountry || "Not selected"} · Currency: {displayCurrency}
-                </p>
-              )}
-              {demoSlot && !canShowCheckout && (
-                <p className="text-xs font-medium leading-relaxed text-amber-700 md:text-right">
-                  Group workshop slots are India-only. Add a valid Indian contact number to unlock the Rs 99 payment.
                 </p>
               )}
             </div>
