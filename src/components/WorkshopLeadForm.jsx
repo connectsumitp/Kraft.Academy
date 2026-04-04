@@ -181,21 +181,40 @@ export default function WorkshopLeadForm() {
     }));
   };
 
-  const onSubmit = async (event) => {
-    event.preventDefault();
+  const continueToCheckout = async () => {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.age || !effectiveCountry || !form.date || !form.timing || !form.email || !isContactValid) {
-      setSubmitMessage("Please complete all required booking details before continuing to checkout.");
+    if (!form.name) {
+      setSubmitMessage("Please enter the student name before continuing to checkout.");
+      return;
+    }
+    if (!form.email) {
+      setSubmitMessage("Please enter the email address before continuing to checkout.");
+      return;
+    }
+    if (!isContactValid) {
+      setSubmitMessage("Please enter a valid contact number before continuing to checkout.");
+      return;
+    }
+    if (!form.age) {
+      setSubmitMessage("Please select the student age before continuing to checkout.");
+      return;
+    }
+    if (!form.date) {
+      setSubmitMessage("Please select a preferred date before continuing to checkout.");
+      return;
+    }
+    if (!form.timing) {
+      setSubmitMessage("Please select a preferred timing before continuing to checkout.");
+      return;
+    }
+    if (!effectiveCountry) {
+      setSubmitMessage("We could not detect the booking country. Please re-enter the contact number and try again.");
       return;
     }
 
     const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
-    if (!scriptUrl) {
-      setSubmitMessage("Missing Google Sheet URL. Add VITE_GOOGLE_SCRIPT_URL in env.");
-      return;
-    }
 
     try {
       setSubmitting(true);
@@ -261,27 +280,31 @@ export default function WorkshopLeadForm() {
           window.location.hash = "#razorpay-checkout";
         }
         setSubmitMessage(
-          "Your preferred 1:1 / global booking details are saved. Continue below to complete payment. We will share the session link on email after successful payment."
+          scriptUrl
+            ? "Your preferred 1:1 / global booking details are saved. Continue below to complete payment. We will share the session link on email after successful payment."
+            : "Your preferred 1:1 / global booking details are saved for checkout. Add VITE_GOOGLE_SCRIPT_URL to capture the lead in Google Sheets as well."
         );
       }
 
-      fetch(scriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: new URLSearchParams(payload).toString(),
-      }).catch(() => {
-        setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
-      });
+      if (scriptUrl) {
+        fetch(scriptUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          },
+          body: new URLSearchParams(payload).toString(),
+        }).catch(() => {
+          setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
+        });
+      }
 
         setForm((prev) => ({
           name: "",
           contact: "",
           email: "",
           age: "",
-          country: effectiveCountry,
+          country: prev.country || effectiveCountry,
           date: "",
           timing: "",
         }));
@@ -312,7 +335,14 @@ export default function WorkshopLeadForm() {
           </p>
           <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
-          <form className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3" onSubmit={onSubmit} noValidate>
+          <form
+            className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              continueToCheckout();
+            }}
+            noValidate
+          >
             <div>
               <label htmlFor="workshop-name" className="mb-1 block text-sm font-medium text-slate-800">
                 Name
@@ -482,7 +512,8 @@ export default function WorkshopLeadForm() {
 
             <div className="lg:col-span-2 xl:col-span-3">
               <button
-                type="submit"
+                type="button"
+                onClick={continueToCheckout}
                 disabled={submitting}
                 className="rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >

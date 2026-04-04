@@ -142,21 +142,40 @@ export default function LeadForm() {
     }));
   };
 
-  const onSubmit = async (event) => {
-    event.preventDefault();
+  const continueToProgramCheckout = async () => {
     setTouched(true);
     setSubmitMessage("");
 
-    if (!form.name || !form.age || !effectiveCountry || !form.program || !form.timing || !form.email || !isContactValid) {
-      setSubmitMessage("Please complete all required enrollment details before continuing to checkout.");
+    if (!form.name) {
+      setSubmitMessage("Please enter the student name before continuing to checkout.");
+      return;
+    }
+    if (!form.email) {
+      setSubmitMessage("Please enter the email address before continuing to checkout.");
+      return;
+    }
+    if (!isContactValid) {
+      setSubmitMessage("Please enter a valid contact number before continuing to checkout.");
+      return;
+    }
+    if (!form.age) {
+      setSubmitMessage("Please select the student age before continuing to checkout.");
+      return;
+    }
+    if (!form.program) {
+      setSubmitMessage("Please select the program before continuing to checkout.");
+      return;
+    }
+    if (!form.timing) {
+      setSubmitMessage("Please select a weekend timing before continuing to checkout.");
+      return;
+    }
+    if (!effectiveCountry) {
+      setSubmitMessage("We could not detect the booking country. Please re-enter the contact number and try again.");
       return;
     }
 
     const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
-    if (!scriptUrl) {
-      setSubmitMessage("Missing Google Sheet URL. Add VITE_GOOGLE_SCRIPT_URL to your .env file.");
-      return;
-    }
 
     try {
       setSubmitting(true);
@@ -221,26 +240,32 @@ export default function LeadForm() {
         } else {
           window.location.hash = "#razorpay-checkout";
         }
-        setSubmitMessage("Your program details are saved. Complete the payment below to confirm enrollment.");
+        setSubmitMessage(
+          scriptUrl
+            ? "Your program details are saved. Complete the payment below to confirm enrollment."
+            : "Your program details are saved for checkout. Add VITE_GOOGLE_SCRIPT_URL to capture the lead in Google Sheets as well."
+        );
       }
 
-      fetch(scriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: new URLSearchParams(payload).toString(),
-      }).catch(() => {
-        setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
-      });
+      if (scriptUrl) {
+        fetch(scriptUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          },
+          body: new URLSearchParams(payload).toString(),
+        }).catch(() => {
+          setSubmitMessage("Your details are saved. We could not confirm lead submission yet, but you can continue with the payment below.");
+        });
+      }
 
         setForm((prev) => ({
           name: "",
           contact: "",
           email: "",
           age: "",
-          country: effectiveCountry,
+          country: prev.country || effectiveCountry,
           program: "",
           timing: "",
         }));
@@ -285,7 +310,14 @@ export default function LeadForm() {
           }`}
           aria-hidden={!isExpanded}
         >
-          <form className="grid gap-4 pb-1" onSubmit={onSubmit} noValidate>
+          <form
+            className="grid gap-4 pb-1"
+            onSubmit={(event) => {
+              event.preventDefault();
+              continueToProgramCheckout();
+            }}
+            noValidate
+          >
             <p className="text-xs font-medium text-slate-600">All fields are mandatory.</p>
 
             <div>
@@ -457,7 +489,8 @@ export default function LeadForm() {
             )}
 
             <button
-              type="submit"
+              type="button"
+              onClick={continueToProgramCheckout}
               disabled={submitting}
               className="mt-2 rounded-2xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
             >
