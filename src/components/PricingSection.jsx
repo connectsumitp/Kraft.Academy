@@ -383,6 +383,16 @@ export default function PricingSection() {
     };
   }, [inferredRegion, paypalGlobalCurrency, programPricing.baseInr, rates]);
 
+  const showOnlyWorkshopCheckout = canShowCheckout && checkoutSnapshot.flow === "workshop";
+  const showOnlyProgramCheckout = canShowCheckout && checkoutSnapshot.flow === "program";
+  const showWorkshopCard = !canShowCheckout || showOnlyWorkshopCheckout;
+  const showProgramCard = !canShowCheckout || showOnlyProgramCheckout;
+  const checkoutGridClass = showWorkshopCard && showProgramCard ? "xl:grid-cols-2" : "max-w-3xl";
+  const workshopCheckoutLabel =
+    inferredRegion === "GLOBAL" && paypalWorkshopPricing?.label ? paypalWorkshopPricing.label : pricingInfo.label;
+  const programCheckoutLabel =
+    inferredRegion === "GLOBAL" && paypalProgramPricing?.label ? paypalProgramPricing.label : programPricing.label;
+
   const confirmWorkshopSeatIfNeeded = async (purpose) => {
     if (typeof window === "undefined") return;
     if (purpose !== "workshop" || !workshopSlotKey) return;
@@ -665,11 +675,12 @@ export default function PricingSection() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          <div className={`mt-6 grid gap-4 ${checkoutGridClass}`}>
+            {showWorkshopCard && (
             <div className={`rounded-2xl border bg-slate-50 p-4 transition ${highlightedCard === "workshop" ? "animate-pulseSoft border-amber-300 ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : "border-slate-200"}`}>
               <p className="text-sm font-semibold text-slate-800">Workshop Payment</p>
               <p className="mt-1 text-sm text-slate-700">
-                {canShowCheckout ? `Pay ${pricingInfo.label}` : "Complete a workshop booking above to unlock this checkout"}
+                {canShowCheckout ? `Pay ${workshopCheckoutLabel}` : "Complete a workshop booking above to unlock this checkout"}
               </p>
               {!canShowCheckout && (
                 <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3">
@@ -682,7 +693,7 @@ export default function PricingSection() {
               )}
               {canShowCheckout && inferredRegion === "GLOBAL" && paypalWorkshopPricing?.amount ? (
                 <p className="mt-1 text-xs font-medium text-slate-600">
-                  PayPal will charge {paypalWorkshopPricing.label} (about {pricingInfo.label} in your local currency).
+                    PayPal will charge {paypalWorkshopPricing.label}. About {pricingInfo.label} in your local currency.
                 </p>
               ) : null}
               {canShowCheckout && inferredRegion === "IN" && !demoSlot && (
@@ -698,11 +709,13 @@ export default function PricingSection() {
               )}
               {renderGatewayButtons("workshop", "workshop")}
             </div>
+            )}
 
+            {showProgramCard && (
             <div className={`rounded-2xl border bg-slate-50 p-4 transition ${highlightedCard === "program" ? "animate-pulseSoft border-amber-300 ring-2 ring-amber-300 shadow-lg shadow-amber-200/40" : "border-slate-200"}`}>
               <p className="text-sm font-semibold text-slate-800">Program Payment</p>
               <p className="mt-1 text-sm text-slate-700">
-                {canShowCheckout ? `Pay ${programPricing.label}` : "Complete a program booking above to unlock this checkout"}
+                {canShowCheckout ? `Pay ${programCheckoutLabel}` : "Complete a program booking above to unlock this checkout"}
               </p>
               {!canShowCheckout && (
                 <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3">
@@ -715,7 +728,7 @@ export default function PricingSection() {
               )}
               {canShowCheckout && inferredRegion === "GLOBAL" && paypalProgramPricing?.amount ? (
                 <p className="mt-1 text-xs font-medium text-slate-600">
-                  PayPal will charge {paypalProgramPricing.label} (about {programPricing.label} in your local currency).
+                    PayPal will charge {paypalProgramPricing.label}. About {programPricing.label} in your local currency.
                 </p>
               ) : null}
               {canShowCheckout && (
@@ -725,6 +738,7 @@ export default function PricingSection() {
               )}
               {renderGatewayButtons("program", "program")}
             </div>
+            )}
           </div>
 
           {checkoutStatus && (
