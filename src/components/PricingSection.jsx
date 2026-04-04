@@ -226,13 +226,12 @@ export default function PricingSection() {
       setWorkshopSlotKey(snapshot.workshopSlotKey);
       setPaymentRegion(snapshot.paymentRegion);
       setCheckoutReady(snapshot.checkoutReady);
-      if (!snapshot.checkoutReady) {
-        window.localStorage.removeItem("ka_checkout_flow");
-      }
     };
 
     const clearSessionAndSync = () => {
-      window.sessionStorage.removeItem("ka_checkout_session_ready");
+      if (hasSessionCheckoutReady()) {
+        window.sessionStorage.removeItem("ka_checkout_session_ready");
+      }
       syncFromStorage();
     };
 
@@ -241,8 +240,8 @@ export default function PricingSection() {
     const onCountryChange = () => clearSessionAndSync();
     const onContactChange = () => clearSessionAndSync();
     const onDateChange = () => clearSessionAndSync();
-    const onDemoSlotChange = () => clearSessionAndSync();
-    const onWorkshopSlotKeyChange = () => clearSessionAndSync();
+    const onDemoSlotChange = () => syncFromStorage();
+    const onWorkshopSlotKeyChange = () => syncFromStorage();
     const onBookingInputChange = () => clearSessionAndSync();
     const onCheckoutReady = () => {
       window.sessionStorage.setItem("ka_checkout_session_ready", "1");
