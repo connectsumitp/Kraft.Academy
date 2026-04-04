@@ -30,7 +30,6 @@ function normalizeCountryCode(value) {
 }
 
 export default function LeadForm() {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [form, setForm] = useState({
     name: "",
     contact: "",
@@ -104,7 +103,6 @@ export default function LeadForm() {
 
     const onProgramFocus = (event) => {
       const nextProgram = event?.detail?.program || "AI Future Skills";
-      setIsExpanded(true);
       setForm((prev) => ({ ...prev, program: nextProgram }));
       window.localStorage.setItem("ka_program", nextProgram);
       window.requestAnimationFrame(() => {
@@ -276,30 +274,15 @@ export default function LeadForm() {
               Program Enrollment Booking
             </h2>
             <p className="mt-2 text-sm text-slate-700">
-              Weekend-only program bookings. Expand this section when you are ready to enroll.
+              Weekend-only program bookings. Fill the enrollment form below to continue to checkout.
             </p>
             <p className="mt-2 text-xs font-semibold text-emerald-700">
               Program timings are available on weekends only, from 10 AM IST to 12 midnight IST, excluding 7-8 PM IST and 8-9 PM IST.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
-            aria-expanded={isExpanded}
-            aria-controls="program-enrollment-panel"
-          >
-            {isExpanded ? "Hide Program Enrollment" : "Enroll for a Program"}
-          </button>
         </div>
 
-        <div
-          id="program-enrollment-panel"
-          className={`overflow-hidden transition-all duration-500 ease-out ${
-            isExpanded ? "mt-6 max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
-          }`}
-          aria-hidden={!isExpanded}
-        >
+        <div id="program-enrollment-panel" className="mt-6">
           <form
             className="grid gap-4 pb-1"
             onSubmit={(event) => {

@@ -45,6 +45,7 @@ function normalizeCountryCode(value) {
 const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
 
 export default function WorkshopLeadForm() {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [form, setForm] = useState({
     name: "",
     contact: "",
@@ -131,6 +132,23 @@ export default function WorkshopLeadForm() {
       }
     }
   }, [defaultCountry, form.country, geoCountry]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const onWorkshopFocus = () => {
+      setIsExpanded(true);
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById("workshop-form");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    };
+
+    window.addEventListener("ka-workshop-focus", onWorkshopFocus);
+    return () => window.removeEventListener("ka-workshop-focus", onWorkshopFocus);
+  }, []);
 
   useEffect(() => {
     if (!form.date) return;
@@ -311,28 +329,43 @@ export default function WorkshopLeadForm() {
     <>
       <section id="workshop-form" className="px-4 pb-10 pt-8 md:px-6" aria-labelledby="workshop-title">
         <div className="mx-auto max-w-6xl rounded-2xl border border-amber-200 bg-white p-6 shadow-sm md:p-8">
-          <h2 id="workshop-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
-            1:1 / Global Demo Booking
-          </h2>
-          <p className="mt-2 text-sm text-slate-700">
-            Choose a preferred 1:1 demo slot for India or any international demo booking for the next 7 days.
-          </p>
-          <p className="mt-2 text-xs font-medium text-slate-600">
-            Pricing appears at checkout after you enter your details and booking route.
-          </p>
-          <p className="mt-3 text-xs font-semibold text-emerald-700">
-            Preferred bookings are available for the next 7 days only, from 10 AM IST to 12 midnight IST. Friday, Saturday, and Sunday exclude 7-8 PM IST and 8-9 PM IST.
-          </p>
-          <p className="mt-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 id="workshop-title" className="text-2xl font-bold text-slate-900 md:text-3xl">
+                1:1 / Global Demo Booking
+              </h2>
+              <p className="mt-2 text-sm text-slate-700">
+                Choose a preferred 1:1 demo slot for India or any international demo booking for the next 7 days.
+              </p>
+              <p className="mt-2 text-xs font-medium text-slate-600">
+                Pricing appears at checkout after you enter your details and booking route.
+              </p>
+              <p className="mt-3 text-xs font-semibold text-emerald-700">
+                Preferred bookings are available for the next 7 days only, from 10 AM IST to 12 midnight IST. Friday, Saturday, and Sunday exclude 7-8 PM IST and 8-9 PM IST.
+              </p>
+            </div>
+            {!isExpanded && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 md:max-w-xs">
+                Click one of the preferred-timing links above to open this booking form.
+              </div>
+            )}
+          </div>
 
-          <form
-            className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              continueToCheckout();
-            }}
-            noValidate
+          <div
+            id="workshop-form-panel"
+            className={`overflow-hidden transition-all duration-500 ease-out ${isExpanded ? "mt-6 max-h-[2200px] opacity-100" : "max-h-0 opacity-0"}`}
+            aria-hidden={!isExpanded}
           >
+            <p className="mb-2 text-xs font-medium text-slate-600">All fields are mandatory.</p>
+
+            <form
+              className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                continueToCheckout();
+              }}
+              noValidate
+            >
             <div>
               <label htmlFor="workshop-name" className="mb-1 block text-sm font-medium text-slate-800">
                 Name
@@ -515,7 +548,8 @@ export default function WorkshopLeadForm() {
                 </p>
               )}
             </div>
-          </form>
+            </form>
+          </div>
         </div>
       </section>
 

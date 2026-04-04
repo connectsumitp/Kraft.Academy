@@ -41,6 +41,13 @@ function scrollToProgramRegistration() {
   window.setTimeout(runScroll, 180);
 }
 
+function openPreferredTimingBooking() {
+  if (typeof window === "undefined") return;
+
+  window.location.hash = "#workshop-form";
+  window.dispatchEvent(new Event("ka-workshop-focus"));
+}
+
 export default function Hero() {
   const [demoForm, setDemoForm] = useState({
     name: "",
@@ -250,6 +257,10 @@ export default function Hero() {
               </a>
               <a
                 href="#workshop-form"
+                onClick={(event) => {
+                  event.preventDefault();
+                  openPreferredTimingBooking();
+                }}
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white/90 px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white"
               >
                 Book 1:1 or Global Demo
@@ -505,12 +516,23 @@ export default function Hero() {
         <div className="mt-5 flex flex-col gap-3 text-sm text-slate-700">
           <p>
             Want your preferred timing for demo classes 1:1?{" "}
-            <a href="#workshop-form" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
+            <a
+              href="#workshop-form"
+              onClick={(event) => {
+                event.preventDefault();
+                openPreferredTimingBooking();
+              }}
+              className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4"
+            >
               This is available in the booking section below.
             </a>
           </p>
           <a
             href="#workshop-form"
+            onClick={(event) => {
+              event.preventDefault();
+              openPreferredTimingBooking();
+            }}
             className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 font-semibold text-white shadow-sm shadow-slate-300/40 transition hover:bg-slate-800"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
