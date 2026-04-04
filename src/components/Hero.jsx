@@ -5,6 +5,8 @@ import { getWorkshopGroupSlots } from "./countryTiming";
 import { fetchWorkshopSeats } from "../lib/workshopSeats";
 import { fetchAvailability } from "../lib/availability";
 
+const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
+
 function scrollToCheckout() {
   if (typeof window === "undefined") return;
 
@@ -145,6 +147,17 @@ export default function Hero() {
       window.dispatchEvent(new Event("ka-date-change"));
       window.dispatchEvent(new Event("ka-demo-slot-change"));
       window.dispatchEvent(new Event("ka-workshop-slot-key-change"));
+      window.localStorage.setItem(
+        CHECKOUT_SNAPSHOT_KEY,
+        JSON.stringify({
+          ready: true,
+          flow: "workshop",
+          country: "IN",
+          contact: demoForm.contact,
+          demoSlot: selectedSlotLabel,
+          workshopSlotKey: slot.slotKey,
+        })
+      );
       window.sessionStorage.setItem("ka_checkout_session_ready", "1");
       window.dispatchEvent(
         new CustomEvent("ka-checkout-snapshot", {
@@ -379,7 +392,7 @@ export default function Hero() {
               onChange={(event) => {
                 setDemoForm((prev) => ({ ...prev, name: event.target.value }));
                 if (typeof window !== "undefined") {
-                  window.dispatchEvent(new Event("ka-booking-input-change"));
+                  window.dispatchEvent(new Event("ka-checkout-invalidate"));
                 }
               }}
               placeholder="Student name"
@@ -392,7 +405,7 @@ export default function Hero() {
               onChange={(event) => {
                 setDemoForm((prev) => ({ ...prev, email: event.target.value }));
                 if (typeof window !== "undefined") {
-                  window.dispatchEvent(new Event("ka-booking-input-change"));
+                  window.dispatchEvent(new Event("ka-checkout-invalidate"));
                 }
               }}
               placeholder="Parent email"
@@ -413,7 +426,7 @@ export default function Hero() {
                   setDemoForm((prev) => ({ ...prev, contact: value || "" }));
                   if (typeof window !== "undefined") {
                     window.dispatchEvent(new Event("ka-contact-change"));
-                    window.dispatchEvent(new Event("ka-booking-input-change"));
+                    window.dispatchEvent(new Event("ka-checkout-invalidate"));
                   }
                 }}
                 className="phone-input bg-white"

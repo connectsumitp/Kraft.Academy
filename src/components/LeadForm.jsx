@@ -1,8 +1,8 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import PhoneInput from "react-phone-number-input";
 import { getProgramTimingOptions, getTimingTimezoneLabel } from "./countryTiming";
 import { fetchAvailability } from "../lib/availability";
-import { getCountryFromPhone } from "../lib/phoneCountry";
+import { getCountryFromPhone, isAcceptableContactNumber } from "../lib/phoneCountry";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -23,6 +23,7 @@ function getDefaultCountry() {
 }
 
 const programs = ["AI Future Skills", "Coding Bootcamp"];
+const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
 
 export default function LeadForm() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -41,7 +42,7 @@ export default function LeadForm() {
   const [geoCountry, setGeoCountry] = useState("");
   const [availabilityItems, setAvailabilityItems] = useState([]);
 
-  const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
+  const isContactValid = useMemo(() => (form.contact ? isAcceptableContactNumber(form.contact) : false), [form.contact]);
   const timingOptions = useMemo(() => getProgramTimingOptions(form.country, availabilityItems), [form.country, availabilityItems]);
   const timingLabel = useMemo(() => getTimingTimezoneLabel(form.country, "", "program"), [form.country]);
   const defaultCountry = useMemo(getDefaultCountry, []);
@@ -115,15 +116,15 @@ export default function LeadForm() {
 
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
-      window.dispatchEvent(new Event("ka-booking-input-change"));
+      window.dispatchEvent(new Event("ka-checkout-invalidate"));
     }
     if (name === "program" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_program", value);
-      window.dispatchEvent(new Event("ka-booking-input-change"));
+      window.dispatchEvent(new Event("ka-checkout-invalidate"));
     }
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
-      window.dispatchEvent(new Event("ka-booking-input-change"));
+      window.dispatchEvent(new Event("ka-checkout-invalidate"));
     }
 
     setForm((prev) => ({
@@ -176,6 +177,17 @@ export default function LeadForm() {
         window.localStorage.removeItem("ka_demo_slot");
         window.localStorage.removeItem("ka_workshop_slot_key");
         window.localStorage.setItem("ka_checkout_flow", "program");
+        window.localStorage.setItem(
+          CHECKOUT_SNAPSHOT_KEY,
+          JSON.stringify({
+            ready: true,
+            flow: "program",
+            country: form.country,
+            contact: form.contact,
+            demoSlot: "",
+            workshopSlotKey: "",
+          })
+        );
         window.sessionStorage.setItem("ka_checkout_session_ready", "1");
         window.dispatchEvent(
           new CustomEvent("ka-checkout-snapshot", {
@@ -306,15 +318,17 @@ export default function LeadForm() {
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
                     window.dispatchEvent(new Event("ka-contact-change"));
-                    window.dispatchEvent(new Event("ka-booking-input-change"));
+                    window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     if (inferred && inferred !== form.country) {
                       window.localStorage.setItem("ka_country", inferred);
                       window.localStorage.removeItem("ka_timing");
                       window.dispatchEvent(new Event("ka-country-change"));
+                      window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     } else if (!next) {
                       window.localStorage.removeItem("ka_country");
                       window.localStorage.removeItem("ka_timing");
                       window.dispatchEvent(new Event("ka-country-change"));
+                      window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     }
                   }
                 }}
@@ -325,7 +339,7 @@ export default function LeadForm() {
                     if (typeof window !== "undefined") {
                       window.localStorage.setItem("ka_country", nextCountry);
                       window.dispatchEvent(new Event("ka-country-change"));
-                      window.dispatchEvent(new Event("ka-booking-input-change"));
+                      window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     }
                   }
                 }}

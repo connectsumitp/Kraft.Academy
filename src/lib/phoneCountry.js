@@ -1,4 +1,4 @@
-import { parsePhoneNumber } from "react-phone-number-input";
+import { isValidPhoneNumber, parsePhoneNumber } from "react-phone-number-input";
 
 const fallbackDialCodeMap = [
   { code: "+1", countries: ["US", "CA"] },
@@ -25,3 +25,25 @@ export function getCountryFromPhone(value) {
   return match ? match.countries[0] : "";
 }
 
+export function isAcceptableContactNumber(value) {
+  if (!value || typeof value !== "string") return false;
+
+  const normalized = value.replace(/[^\d+]/g, "");
+  if (!normalized.startsWith("+")) return false;
+
+  const country = getCountryFromPhone(normalized);
+  if (country === "IN") {
+    return isValidPhoneNumber(normalized);
+  }
+
+  if (country) {
+    const digits = normalized.replace(/\D/g, "");
+    return digits.length >= 8 && digits.length <= 15;
+  }
+
+  try {
+    return isValidPhoneNumber(normalized);
+  } catch {
+    return false;
+  }
+}

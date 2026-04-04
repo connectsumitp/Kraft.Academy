@@ -221,22 +221,16 @@ export default function PricingSection() {
 
     syncSnapshot();
 
-    window.addEventListener("ka-country-change", clearSnapshot);
-    window.addEventListener("ka-contact-change", clearSnapshot);
-    window.addEventListener("ka-date-change", clearSnapshot);
     window.addEventListener("ka-demo-slot-change", syncSnapshot);
     window.addEventListener("ka-workshop-slot-key-change", syncSnapshot);
-    window.addEventListener("ka-booking-input-change", clearSnapshot);
+    window.addEventListener("ka-checkout-invalidate", clearSnapshot);
     window.addEventListener("ka-checkout-snapshot", applySnapshot);
     window.addEventListener("ka-checkout-ready", syncSnapshot);
 
     return () => {
-      window.removeEventListener("ka-country-change", clearSnapshot);
-      window.removeEventListener("ka-contact-change", clearSnapshot);
-      window.removeEventListener("ka-date-change", clearSnapshot);
       window.removeEventListener("ka-demo-slot-change", syncSnapshot);
       window.removeEventListener("ka-workshop-slot-key-change", syncSnapshot);
-      window.removeEventListener("ka-booking-input-change", clearSnapshot);
+      window.removeEventListener("ka-checkout-invalidate", clearSnapshot);
       window.removeEventListener("ka-checkout-snapshot", applySnapshot);
       window.removeEventListener("ka-checkout-ready", syncSnapshot);
     };

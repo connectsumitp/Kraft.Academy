@@ -1,8 +1,8 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import PhoneInput from "react-phone-number-input";
 import { getPreferredDateBounds, getPreferredTimingOptions, getTimingTimezoneLabel, isAvailabilityDateBlocked } from "./countryTiming";
 import { fetchAvailability } from "../lib/availability";
-import { getCountryFromPhone } from "../lib/phoneCountry";
+import { getCountryFromPhone, isAcceptableContactNumber } from "../lib/phoneCountry";
 
 const localeCountryMap = {
   "en-US": "US",
@@ -38,6 +38,8 @@ function formatDisplayDate(isoDate) {
   }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
 }
 
+const CHECKOUT_SNAPSHOT_KEY = "ka_checkout_snapshot";
+
 export default function WorkshopLeadForm() {
   const [form, setForm] = useState({
     name: "",
@@ -55,7 +57,7 @@ export default function WorkshopLeadForm() {
   const [geoCountry, setGeoCountry] = useState("");
   const [availabilityItems, setAvailabilityItems] = useState([]);
 
-  const isContactValid = useMemo(() => (form.contact ? isValidPhoneNumber(form.contact) : false), [form.contact]);
+  const isContactValid = useMemo(() => (form.contact ? isAcceptableContactNumber(form.contact) : false), [form.contact]);
   const timingOptions = useMemo(
     () => getPreferredTimingOptions(form.country, form.date, availabilityItems),
     [form.country, form.date, availabilityItems]
@@ -143,6 +145,7 @@ export default function WorkshopLeadForm() {
         window.localStorage.removeItem("ka_date");
         window.localStorage.removeItem("ka_timing");
         window.dispatchEvent(new Event("ka-date-change"));
+        window.dispatchEvent(new Event("ka-checkout-invalidate"));
       }
       setForm((prev) => ({ ...prev, date: "", timing: "" }));
       return;
@@ -150,16 +153,17 @@ export default function WorkshopLeadForm() {
 
     if (typeof window !== "undefined" && ["name", "email", "age"].includes(name)) {
       window.localStorage.setItem(`ka_${name}`, value);
-      window.dispatchEvent(new Event("ka-booking-input-change"));
+      window.dispatchEvent(new Event("ka-checkout-invalidate"));
     }
     if (name === "date" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_date", value);
       window.localStorage.removeItem("ka_timing");
       window.dispatchEvent(new Event("ka-date-change"));
+      window.dispatchEvent(new Event("ka-checkout-invalidate"));
     }
     if (name === "timing" && typeof window !== "undefined") {
       window.localStorage.setItem("ka_timing", value);
-      window.dispatchEvent(new Event("ka-booking-input-change"));
+      window.dispatchEvent(new Event("ka-checkout-invalidate"));
     }
 
     setForm((prev) => ({
@@ -212,6 +216,17 @@ export default function WorkshopLeadForm() {
         window.localStorage.removeItem("ka_demo_slot");
         window.localStorage.removeItem("ka_workshop_slot_key");
         window.localStorage.setItem("ka_checkout_flow", "workshop");
+        window.localStorage.setItem(
+          CHECKOUT_SNAPSHOT_KEY,
+          JSON.stringify({
+            ready: true,
+            flow: "workshop",
+            country: form.country,
+            contact: form.contact,
+            demoSlot: "",
+            workshopSlotKey: "",
+          })
+        );
         window.sessionStorage.setItem("ka_checkout_session_ready", "1");
         window.dispatchEvent(
           new CustomEvent("ka-checkout-snapshot", {
@@ -329,16 +344,18 @@ export default function WorkshopLeadForm() {
                   if (typeof window !== "undefined") {
                     window.localStorage.setItem("ka_contact", next);
                     window.dispatchEvent(new Event("ka-contact-change"));
-                    window.dispatchEvent(new Event("ka-booking-input-change"));
+                    window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     if (inferred && inferred !== form.country) {
                       window.localStorage.setItem("ka_country", inferred);
                       window.localStorage.removeItem("ka_timing");
                       window.dispatchEvent(new Event("ka-country-change"));
+                      window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     } else if (!next) {
                       window.localStorage.removeItem("ka_country");
                       window.localStorage.removeItem("ka_timing");
                       window.localStorage.removeItem("ka_date");
                       window.dispatchEvent(new Event("ka-country-change"));
+                      window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     }
                   }
                 }}
@@ -349,7 +366,7 @@ export default function WorkshopLeadForm() {
                     if (typeof window !== "undefined") {
                       window.localStorage.setItem("ka_country", nextCountry);
                       window.dispatchEvent(new Event("ka-country-change"));
-                      window.dispatchEvent(new Event("ka-booking-input-change"));
+                      window.dispatchEvent(new Event("ka-checkout-invalidate"));
                     }
                   }
                 }}
