@@ -299,16 +299,6 @@ export default function WorkshopLeadForm() {
         });
       }
 
-        setForm((prev) => ({
-          name: "",
-          contact: "",
-          email: "",
-          age: "",
-          country: prev.country || effectiveCountry,
-          date: "",
-          timing: "",
-        }));
-      setTouched(false);
       setShowSuccess(true);
     } catch {
       setSubmitMessage("Submission failed. Please try again.");

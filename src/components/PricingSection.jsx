@@ -48,6 +48,19 @@ function formatMoney(value, currency) {
   }
 }
 
+function formatMoneyWithCode(value, currency) {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      currencyDisplay: "code",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${currency} ${Math.round(value)}`;
+  }
+}
+
 function getConvertedAmount(value) {
   if (!Number.isFinite(value)) return value;
   if (value <= 0) return 0;
@@ -398,11 +411,6 @@ export default function PricingSection() {
     inferredRegion === "GLOBAL" && paypalWorkshopPricing?.label ? paypalWorkshopPricing.label : pricingInfo.label;
   const programCheckoutLabel =
     inferredRegion === "GLOBAL" && paypalProgramPricing?.label ? paypalProgramPricing.label : programPricing.label;
-  const debugSnapshotLine = `debug: ready=${String(checkoutSnapshot.ready)} flow=${checkoutSnapshot.flow || "none"} country=${
-    checkoutSnapshot.country || "none"
-  } contact=${checkoutSnapshot.contact ? "set" : "empty"} demoSlot=${checkoutSnapshot.demoSlot ? "set" : "empty"} workshopSlotKey=${
-    checkoutSnapshot.workshopSlotKey ? "set" : "empty"
-  }`;
 
   const confirmWorkshopSeatIfNeeded = async (purpose) => {
     if (typeof window === "undefined") return;
@@ -702,11 +710,6 @@ export default function PricingSection() {
               {canShowCheckout && inferredRegion === "GLOBAL" && (
                 <p className="mt-1 text-xs text-slate-500">~{formatMoney(pricingInfo.raw, displayCurrency)} for {pricingInfo.baseInr} INR.</p>
               )}
-              {canShowCheckout && inferredRegion === "GLOBAL" && paypalWorkshopPricing?.amount ? (
-                <p className="mt-1 text-xs font-medium text-slate-600">
-                    PayPal will charge {paypalWorkshopPricing.label}. About {pricingInfo.label} in your local currency.
-                </p>
-              ) : null}
               {canShowCheckout && inferredRegion === "IN" && !demoSlot && (
                 <p className="mt-1 text-xs text-slate-500">India 1:1 demo price is locked at Rs 499 for this booking.</p>
               )}
@@ -719,6 +722,16 @@ export default function PricingSection() {
                 </p>
               )}
               {renderGatewayButtons("workshop", "workshop")}
+              {canShowCheckout && inferredRegion === "GLOBAL" && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-slate-700">
+                  <span className="mt-0.5 text-amber-600" aria-hidden="true">
+                    •
+                  </span>
+                  <span>
+                    Approximate local payment for this booking: {formatMoneyWithCode(pricingInfo.amount, displayCurrency)}.
+                  </span>
+                </div>
+              )}
             </div>
             )}
 
@@ -737,17 +750,22 @@ export default function PricingSection() {
               {canShowCheckout && inferredRegion === "GLOBAL" && programPricing.baseInr && (
                 <p className="mt-1 text-xs text-slate-500">~{formatMoney(programPricing.raw, displayCurrency)} for {programPricing.baseInr} INR.</p>
               )}
-              {canShowCheckout && inferredRegion === "GLOBAL" && paypalProgramPricing?.amount ? (
-                <p className="mt-1 text-xs font-medium text-slate-600">
-                    PayPal will charge {paypalProgramPricing.label}. About {programPricing.label} in your local currency.
-                </p>
-              ) : null}
               {canShowCheckout && (
                 <p className="mt-2 text-xs font-medium text-slate-600">
                   Program confirmation and session details will be shared on the same email after successful payment.
                 </p>
               )}
               {renderGatewayButtons("program", "program")}
+              {canShowCheckout && inferredRegion === "GLOBAL" && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-slate-700">
+                  <span className="mt-0.5 text-amber-600" aria-hidden="true">
+                    •
+                  </span>
+                  <span>
+                    Approximate local payment for this booking: {formatMoneyWithCode(programPricing.amount, displayCurrency)}.
+                  </span>
+                </div>
+              )}
             </div>
             )}
           </div>
@@ -757,9 +775,6 @@ export default function PricingSection() {
               {checkoutStatus}
             </p>
           )}
-          <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-medium text-slate-500">
-            {debugSnapshotLine}
-          </p>
           {!orderScriptUrl && (
             <p className="mt-2 text-xs text-rose-600">Add VITE_RAZORPAY_ORDER_SCRIPT_URL in .env to enable Razorpay checkout.</p>
           )}

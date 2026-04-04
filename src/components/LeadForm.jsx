@@ -260,16 +260,6 @@ export default function LeadForm() {
         });
       }
 
-        setForm((prev) => ({
-          name: "",
-          contact: "",
-          email: "",
-          age: "",
-          country: prev.country || effectiveCountry,
-          program: "",
-          timing: "",
-        }));
-      setTouched(false);
     } catch {
       setSubmitMessage("Submission failed. Check Apps Script deployment access and sheet name, then try again.");
     } finally {
